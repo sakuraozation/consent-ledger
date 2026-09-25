@@ -20,6 +20,8 @@ decisions were mine, per the event's attribution rule.
 | `src/api.ts` | Claude Code |
 | `src/approval.ts` | Claude Code, against the OIDC discovery document I had it read; rewritten for the device flow after the code flow failed |
 | `migrations/*` | Claude Code |
+| `src/ui.tsx`, `src/screens.tsx` | Claude Code, from the journey and intents I wrote |
+| `docs/journey.md`, `docs/intents.md`, `docs/conventions.md`, `intel/market.md` | me (drafted with Claude Code, edited and decided by me) |
 | `src/worldid.ts`, `scripts/*` | Claude Code, pre-event (disclosed scaffold) |
 
 ## What I decided, not the model

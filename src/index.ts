@@ -3,6 +3,7 @@ import { ExactEvmScheme } from "@x402/evm/exact/server";
 import { paymentMiddleware, x402ResourceServer } from "@x402/hono";
 import { Hono } from "hono";
 import { api } from "./api";
+import { screens } from "./screens";
 import { worldId } from "./worldid";
 
 // Workers では module スコープで env を読めないので、最初のリクエストで組み立てて使い回す。
@@ -33,13 +34,17 @@ function buildPaid(env: Env): PaidMiddleware {
 
 const app = new Hono<{ Bindings: Env }>();
 
-app.get("/", (c) =>
+app.get("/api", (c) =>
   c.text(
     [
-      "hack-kit",
-      "GET /health  -> ok",
-      "GET /paid    -> 402 until paid (x402, $0.001 USDC on Base Sepolia)",
-      "GET /worldid -> World ID hello world (server-side verify, failure paths)",
+      "consent-ledger — API",
+      "POST /check                  -> allow | deny | ask | revoked (with a reason)",
+      "POST /consents               -> put a consent on the record",
+      "POST /consents/:id/revoke    -> the person takes it back",
+      "POST /approvals              -> ask a human (World ID for Agents, device flow)",
+      "GET  /approvals/:requestId   -> waiting | approved | denied | expired",
+      "",
+      "Screens: /generate  /me  /agency",
     ].join("\n"),
   ),
 );
@@ -55,5 +60,6 @@ app.get("/paid", (c) => c.json({ hello: "paid", at: new Date().toISOString() }))
 
 app.route("/", worldId);
 app.route("/", api);
+app.route("/", screens);
 
 export default app;
