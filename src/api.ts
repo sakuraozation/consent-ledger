@@ -1,5 +1,6 @@
 // 照会の口。生成する側（エージェント）はここだけ見ればよい。
 import { Hono } from "hono";
+import { completeApproval, getPendingByRequest, startApproval, sweep } from "./approval";
 import { type Consent, check, revoke, store } from "./ledger";
 
 export const api = new Hono<{ Bindings: Env }>();
@@ -40,3 +41,65 @@ api.post("/consents/:id/revoke", (c) => {
 });
 
 api.get("/consents", (c) => c.json(store.all()));
+
+/** 「人に聞く」を開始する。check が ask を返した時に呼ぶ。 */
+api.post("/approvals", async (c) => {
+  const clientId = c.env.WORLD_OIDC_CLIENT_ID;
+  if (!clientId) return c.json({ error: "WORLD_OIDC_CLIENT_ID is not configured" }, 500);
+  const b = (await c.req.json().catch(() => null)) as
+    | { requestId?: string; subject?: string; scope?: string }
+    | null;
+  if (!b?.requestId || !b.subject || !b.scope) {
+    return c.json({ error: "requestId, subject and scope are required" }, 400);
+  }
+  const { url, pending } = await startApproval({
+    requestId: b.requestId,
+    subject: b.subject,
+    scope: b.scope,
+    clientId,
+    redirectUri: new URL("/approvals/callback", c.req.url).toString(),
+  });
+  return c.json({ approveUrl: url, expiresAt: pending.expiresAt });
+});
+
+/** 認可画面からの戻り。承認されたら許諾を作り直す（期限切れの更新もここ）。 */
+api.get("/approvals/callback", async (c) => {
+  const clientId = c.env.WORLD_OIDC_CLIENT_ID;
+  if (!clientId) return c.text("WORLD_OIDC_CLIENT_ID is not configured", 500);
+  const code = c.req.query("code");
+  const state = c.req.query("state");
+  if (!code || !state) {
+    return c.text("The human declined or the provider returned no code — the action does not proceed.", 400);
+  }
+  const r = await completeApproval({
+    code,
+    state,
+    clientId,
+    clientSecret: c.env.WORLD_OIDC_CLIENT_SECRET,
+    redirectUri: new URL("/approvals/callback", c.req.url).toString(),
+  });
+  if (!r.ok || !r.pending) return c.text(r.reason, 403);
+
+  store.put({
+    id: crypto.randomUUID(),
+    subject: r.pending.subject,
+    scopes: [r.pending.scope],
+    expiresAt: Date.now() + 60_000,
+    custodian: undefined,
+  });
+  return c.text(`${r.reason}\nConsent granted for "${r.pending.scope}".`);
+});
+
+/** 承認の状態を見る。待っている間に何が起きているかを画面に出すため。 */
+api.get("/approvals/:requestId", (c) => {
+  sweep();
+  const p = getPendingByRequest(c.req.param("requestId"));
+  if (!p) return c.json({ error: "not found" }, 404);
+  return c.json({
+    requestId: p.requestId,
+    scope: p.scope,
+    status: p.result ?? "waiting",
+    expiresAt: p.expiresAt,
+    sub: p.sub,
+  });
+});

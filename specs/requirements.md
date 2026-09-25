@@ -52,10 +52,12 @@ Proofs are mocked in the dev environment — no sandbox World App setup required
       `github.com/worldcoin/world-id-agent-plugin`)
 - [ ] Demonstrate the complete journey: verification request → user completion →
       validated result → **the protected action**
-- [ ] Demonstrate a **denied, expired, cancelled or otherwise unsuccessful path where
-      the protected action does not occur**
-- [ ] **Validate identity results in a secure backend**; never expose client secrets or
-      treat an unvalidated client response as authorization
+- [x] Demonstrate a **denied, expired, cancelled or otherwise unsuccessful path where
+      the protected action does not occur** — declined (no code), unknown state, and
+      deadline expiry all refuse
+- [x] **Validate identity results in a secure backend**; never expose client secrets or
+      treat an unvalidated client response as authorization — ID token verified against
+      JWKS in `src/approval.ts`
 - [ ] Same integration debrief as above → `FEEDBACK.md`
 
 **Our answer**: the protected action is *generating from someone's body-scan data*. The
