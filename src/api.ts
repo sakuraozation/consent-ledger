@@ -1,7 +1,7 @@
 // 照会の口。生成する側（エージェント）はここだけ見ればよい。
 import { Hono } from "hono";
 import { getPendingByRequest, pollApproval, startApproval, sweep } from "./approval";
-import { type Consent, all, check, put, revoke } from "./ledger";
+import { type Consent, all, check, put, record, revoke, usesBySubject } from "./ledger";
 
 export const api = new Hono<{ Bindings: Env }>();
 
@@ -23,10 +23,20 @@ api.post("/consents", async (c) => {
 
 /** 生成の前にここを呼ぶ。4状態を理由つきで返す。 */
 api.post("/check", async (c) => {
-  const b = (await c.req.json().catch(() => null)) as { subject?: string; scope?: string } | null;
+  const b = (await c.req.json().catch(() => null)) as
+    | { subject?: string; scope?: string; requester?: string }
+    | null;
   if (!b?.subject || !b.scope) return c.json({ error: "subject and scope are required" }, 400);
+  const verdict = await check(c.env.DB, { subject: b.subject, scope: b.scope });
+  // 判定は全部残す。拒否も含めて、本人が後から見られるように。
+  await record(c.env.DB, {
+    subject: b.subject,
+    scope: b.scope,
+    verdict,
+    requester: b.requester ?? c.req.header("user-agent") ?? undefined,
+  });
   // allow 以外も 200 で返す＝呼ぶ側が判定を読む。HTTP のエラーにしない。
-  return c.json(await check(c.env.DB, { subject: b.subject, scope: b.scope }));
+  return c.json(verdict);
 });
 
 /** 本人が取り消す。窓口（事務所）を通さずに効く＝ここが設計の芯。 */
@@ -37,6 +47,9 @@ api.post("/consents/:id/revoke", async (c) => {
 });
 
 api.get("/consents", async (c) => c.json(await all(c.env.DB)));
+
+/** 本人が「いつ・誰に・どう使われたか」を見る。 */
+api.get("/uses/:subject", async (c) => c.json(await usesBySubject(c.env.DB, c.req.param("subject"))));
 
 /** 「人に聞く」を開始する。check が ask を返した時に呼ぶ。人間に見せるコードを返す。 */
 api.post("/approvals", async (c) => {

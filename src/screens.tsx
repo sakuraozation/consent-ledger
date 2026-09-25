@@ -1,8 +1,8 @@
 // 3つの画面。どれも判定を持たず、ledger の verdict をそのまま映す。
 import { Hono } from "hono";
 import { getPendingByRequest, pollApproval, startApproval, sweep } from "./approval";
-import { all, bySubject, check, put, revoke } from "./ledger";
-import { ConsentCard, Page, VerdictBox } from "./ui";
+import { all, bySubject, check, put, record, revoke, usesBySubject } from "./ledger";
+import { ConsentCard, Page, UseLog, VerdictBox } from "./ui";
 
 export const screens = new Hono<{ Bindings: Env }>();
 
@@ -48,12 +48,18 @@ screens.post("/agency/consents", async (c) => {
 /** 本人の画面。押す物がひとつだけある。窓口を通さずに効く。 */
 screens.get("/me", async (c) => {
   const subject = c.req.query("subject") ?? DEMO_SUBJECT;
-  const mine = await bySubject(c.env.DB, subject);
+  const [mine, uses] = await Promise.all([bySubject(c.env.DB, subject), usesBySubject(c.env.DB, subject)]);
   return c.html(
     <Page title="Your consents" here="me">
       <h1>What you have agreed to</h1>
       <p class="sub">Revoking takes effect immediately. You do not need the agency to do it for you.</p>
       {mine.length === 0 ? <p class="dim">Nothing on file.</p> : mine.map((x) => <ConsentCard c={x} revocable />)}
+      <h2>Where it was used</h2>
+      <p class="sub">
+        Every time someone asked to generate from your data, it is here — including the times they were
+        refused. This is the part you could never see before.
+      </p>
+      <UseLog uses={uses} />
     </Page>,
   );
 });
@@ -69,6 +75,7 @@ screens.get("/generate", async (c) => {
   const scope = c.req.query("scope") ?? "ad-image";
   const asked = c.req.query("asked");
   const v = asked ? await check(c.env.DB, { subject, scope }) : undefined;
+  if (v) await record(c.env.DB, { subject, scope, verdict: v, requester: "pipeline-a (demo)" });
 
   return c.html(
     <Page title="Generate — consent check" here="generate">
@@ -169,6 +176,10 @@ screens.get("/generate/waiting/:requestId", async (c) => {
           <div class="meta">
             {left}s left. If nobody answers, this request expires and nothing is generated.
           </div>
+          <div class="meta dim" style="margin-top:.75rem">
+            In this industry the message goes over chat, so it is written to be pasted:
+          </div>
+          <pre class="paste">{`Approval needed for "${p.scope}".\nCode: ${p.userCode}\nOpen: https://sandbox.auth.world.org/device\nExpires in ${left}s — nothing is generated until you answer.`}</pre>
         </div>
       ) : null}
       <div class={`verdict ${r.status === "approved" ? "allow" : r.status === "waiting" ? "ask" : "deny"}`}>

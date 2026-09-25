@@ -1,6 +1,6 @@
 // 画面。判定はしない（src/ledger.ts の仕事）。理由の文字列はそのまま出す。
 import type { FC, PropsWithChildren } from "hono/jsx";
-import type { Consent, Verdict } from "./ledger";
+import type { Consent, Use, Verdict } from "./ledger";
 
 const CSS = `
 :root { --bg:#fff; --fg:#111; --muted:#666; --line:#e5e5e5; --card:#fafafa;
@@ -29,6 +29,11 @@ input, select { font:inherit; padding:.45rem .6rem; border-radius:8px; border:1p
 .verdict p { margin:0; color:var(--fg) }
 .allow { color:var(--allow) } .deny { color:var(--deny) } .ask { color:var(--ask) } .revoked { color:var(--revoked) }
 .code { font:1.9rem/1.2 ui-monospace,monospace; letter-spacing:.12em; margin:.5rem 0 }
+pre.paste { white-space:pre-wrap; background:var(--bg); border:1px dashed var(--line); border-radius:8px;
+  padding:.75rem; font:.85rem/1.5 ui-monospace,monospace; color:var(--fg); margin:.35rem 0 0 }
+table.log { width:100%; border-collapse:collapse; margin:.5rem 0 1.5rem; font-size:.9rem }
+table.log td { padding:.35rem .5rem .35rem 0; border-bottom:1px solid var(--line); vertical-align:baseline }
+table.log td:first-child { white-space:nowrap }
 .dim { color:var(--muted) } .strike { text-decoration:line-through; color:var(--muted) }
 `;
 
@@ -92,6 +97,33 @@ export const ConsentCard: FC<{ c: Consent; revocable?: boolean }> = ({ c, revoca
         subject {c.subject.slice(0, 12)}… · id {c.id.slice(0, 8)}
       </div>
     </div>
+  );
+};
+
+export const UseLog: FC<{ uses: Use[] }> = ({ uses }) => {
+  if (uses.length === 0) return <p class="dim">Nobody has asked for this yet.</p>;
+  const allowed = uses.filter((u) => u.decision === "allow").length;
+  const refused = uses.length - allowed;
+  return (
+    <>
+      <p class="meta">
+        {uses.length} request{uses.length === 1 ? "" : "s"} · {allowed} went through · {refused} did not
+      </p>
+      <table class="log">
+        <tbody>
+          {uses.map((u) => (
+            <tr>
+              <td class="meta">{new Date(u.at).toISOString().slice(11, 19)}Z</td>
+              <td>
+                <span class={u.decision}>{u.decision}</span>
+              </td>
+              <td>{u.scope}</td>
+              <td class="meta dim">{(u.requester ?? "unknown").slice(0, 28)}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </>
   );
 };
 

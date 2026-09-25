@@ -83,7 +83,26 @@ export async function check(
     };
   }
 
-  const revoked = found.find((c) => c.revokedAt !== undefined);
+  // 範囲の中で判断する。取り消しは「その用途について」効く——別の用途の許諾まで
+  // 巻き込むと、事務所が新しく出し直した許諾も死ぬ（09-25 デモ中に発見）。
+  const inScope = found.filter((c) => c.scopes.includes(input.scope));
+  if (inScope.length === 0) {
+    const known = [...new Set(found.flatMap((c) => c.scopes))].join(", ");
+    return { decision: "deny", reason: `Scope "${input.scope}" is outside the granted scopes (${known}).` };
+  }
+
+  // 生きている許諾が1つでもあれば通す。取り消しはその許諾に効くのであって、人に効くのではない。
+  const live = inScope.find((c) => c.revokedAt === undefined && c.expiresAt > now);
+  if (live) {
+    return {
+      decision: "allow",
+      reason: `Consent ${live.id} covers "${input.scope}" until ${new Date(live.expiresAt).toISOString()}.`,
+      consentId: live.id,
+    };
+  }
+
+  // 生きているものが無い時、取り消されたものがあれば、それが答え。期限切れより強い。
+  const revoked = inScope.find((c) => c.revokedAt !== undefined);
   if (revoked) {
     return {
       decision: "revoked",
@@ -92,28 +111,73 @@ export async function check(
     };
   }
 
-  const inScope = found.filter((c) => c.scopes.includes(input.scope));
-  if (inScope.length === 0) {
-    const known = [...new Set(found.flatMap((c) => c.scopes))].join(", ");
-    return { decision: "deny", reason: `Scope "${input.scope}" is outside the granted scopes (${known}).` };
-  }
-
-  const live = inScope.find((c) => c.expiresAt > now);
-  if (!live) {
-    const latest = inScope.sort((a, b) => b.expiresAt - a.expiresAt)[0] as Consent;
-    return {
-      decision: "ask",
-      reason: `Consent ${latest.id} expired at ${new Date(latest.expiresAt).toISOString()} — asking the human to renew.`,
-      consentId: latest.id,
-      requestId: crypto.randomUUID(),
-    };
-  }
-
+  // 残るのは期限切れだけ。拒否でなく「人に聞く」＝切れたのは意思が変わったからではない。
+  const latest = inScope.sort((a, b) => b.expiresAt - a.expiresAt)[0] as Consent;
   return {
-    decision: "allow",
-    reason: `Consent ${live.id} covers "${input.scope}" until ${new Date(live.expiresAt).toISOString()}.`,
-    consentId: live.id,
+    decision: "ask",
+    reason: `Consent ${latest.id} expired at ${new Date(latest.expiresAt).toISOString()} — asking the human to renew.`,
+    consentId: latest.id,
+    requestId: crypto.randomUUID(),
   };
+}
+
+
+export type Use = {
+  id: string;
+  subject: string;
+  scope: string;
+  decision: Decision;
+  consentId?: string;
+  requester?: string;
+  at: number;
+};
+
+type UseRow = {
+  id: string;
+  subject: string;
+  scope: string;
+  decision: string;
+  consent_id: string | null;
+  requester: string | null;
+  at: number;
+};
+
+/**
+ * 照会を記録する。彼女の証言の核心は「使われても気づけない」だったので、
+ * 判定そのものを残して本人に見せる（拒否も含めて全部。断られた事実も知る権利がある）。
+ */
+export async function record(
+  db: D1Database,
+  u: { subject: string; scope: string; verdict: Verdict; requester?: string },
+): Promise<void> {
+  await db
+    .prepare("INSERT INTO uses (id, subject, scope, decision, consent_id, requester, at) VALUES (?, ?, ?, ?, ?, ?, ?)")
+    .bind(
+      crypto.randomUUID(),
+      u.subject,
+      u.scope,
+      u.verdict.decision,
+      u.verdict.consentId ?? null,
+      u.requester ?? null,
+      Date.now(),
+    )
+    .run();
+}
+
+export async function usesBySubject(db: D1Database, subject: string, limit = 50): Promise<Use[]> {
+  const { results } = await db
+    .prepare("SELECT * FROM uses WHERE subject = ? ORDER BY at DESC LIMIT ?")
+    .bind(subject, limit)
+    .all<UseRow>();
+  return results.map((r) => ({
+    id: r.id,
+    subject: r.subject,
+    scope: r.scope,
+    decision: r.decision as Decision,
+    consentId: r.consent_id ?? undefined,
+    requester: r.requester ?? undefined,
+    at: r.at,
+  }));
 }
 
 /** 本人が取り消す。窓口を通さずに効く＝ここが設計の芯。 */
