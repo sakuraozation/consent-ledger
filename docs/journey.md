@@ -1,7 +1,8 @@
 # Customer journey
 
-Three people, one record. Written before the screens, so the screens have something to
-be measured against.
+Three people, one record. Written before the screens, so the screens have something to be
+measured against; revised once the framing changed (the agency is the operator, not the
+adversary).
 
 ---
 
@@ -11,13 +12,18 @@ A model shoots a campaign. As part of it, she is photographed from many angles �
 normal, paid, and agreed. Months later a friend sends her an ad. It is not her face
 exactly, but it is her body, her posture, her proportions. Nobody asked.
 
-**She cannot tell when it happens, and she has nobody to call.** This is the state before
-anything we build.
+She calls her agency — the people whose job is exactly this. **They cannot do anything
+either.** Nobody can see it, so nobody can stop it. That is the state before anything we
+build.
 
-## 2. The agency puts the consent on the record
+## 2. She delegates, and the agency puts the consent on the record
 
-The agency already knows the terms — which medium, until when, how. Until now that lived
-in a contract nobody can query at the speed generation happens.
+First she gives her agency the authority to act — the same thing she already does by
+signing with them, made explicit enough for a machine to honour. Without it they cannot
+issue anything, and nothing they issue is honoured.
+
+Then they do the work. The agency already knows the terms — which medium, until when, how.
+Until now that lived in a contract nobody can query at the speed generation happens.
 
 They create a consent: **who**, **what use**, **until when**. The person is identified by
 a World ID pairwise subject, so the record says *this human*, not *this name*. No images
@@ -60,22 +66,33 @@ decision, not an oversight: an agent that proceeds on silence is not asking.
 > *Screen: the waiting state — the code, the countdown, and what happens if nobody
 > answers.*
 
-## 5. She changes her mind
+## 5. Something is wrong, and it stops
 
-She opens her page and revokes. No email to the agency, no ticket, no waiting.
+Usually this is a message: she tells her agency, and they press Revoke. Seconds later the
+same request from the same pipeline comes back **refused, with the reason**. That is the
+daily path, and it is the one that has never existed before — until now neither of them
+could stop anything.
 
-The next request — the same request, from the same pipeline, seconds later — comes back
-**refused, with the reason**. The agency's dashboard shows it too, but the agency did not
-have to act, and could not have stopped it.
+> *Screen: the agency revokes, then the same request refused.*
 
-> *Screen: the revoke button, then the same request refused.*
+The rarer path is hers alone. If she ever wants the authority back, she withdraws the
+delegation, and **every consent issued under it stops at once** — the agency cannot undo
+that. She will almost never use it. It is the reason the arrangement is worth trusting.
 
-This is the moment the whole thing exists for. Ten seconds, no explanation needed.
+> *Screen: Withdraw authority, then every request under it refused.*
+
+Ten seconds, either way, no explanation needed.
 
 ---
 
 ## What each person leaves with
 
-- **The person**: something to press, that works without asking anyone.
-- **The agency**: an answer when a brand asks for proof, and something to tell their talent.
+- **The agency**: the ability to act at all — say what the data is for, stop a misuse the
+  day they hear about it, and answer a brand that asks for proof.
+- **The person**: someone handling it, and one thing she can press herself if she ever
+  needs to.
 - **The generating side**: a yes or no before they spend, with a reason they can act on.
+
+What made this hard was never consent. It was that writing precise terms — duration,
+scope, what counts as reuse — cost more than the vagueness did, until generation got fast
+enough to make vagueness expensive.

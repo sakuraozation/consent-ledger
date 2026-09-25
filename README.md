@@ -33,6 +33,22 @@ use the moment it hears about one. The person delegates that, and keeps exactly 
 cannot be undone by the agency. That backstop is not a guard against the agency; it is
 what makes the arrangement worth trusting in the first place.
 
+## Why nobody solved this: precision was too expensive
+
+Consent was never missing. Terms were — duration, scope, what counts as reuse. Writing
+those precisely costs lawyer time and a negotiation per counterparty, so the industry
+settled on vagueness, and vagueness was survivable because nothing generated at speed and
+nobody outside needed to see the terms.
+
+AI generation broke that equilibrium. A vague period cannot hold when thousands of images
+come out of one scan in an afternoon.
+
+**So the product is not a consent toggle. It is making precise terms cheap enough to be
+worth writing.** Which is also why an agency would adopt it rather than tolerate it: the
+same record expresses *their* legitimate claims. An agency that invested years in someone
+can say so — this scope, this period, held by us — in the same structure, enforced the
+same way. A tool that only protects one side of that relationship does not get installed.
+
 ## Why the agency is the customer
 
 Since 2025–2026 the burden of proof sits with whoever generates: New York's Fashion
