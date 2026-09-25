@@ -24,6 +24,17 @@
 - **足りなかった機能・docs**: 管理 API（`/api/v1/graphql`）の公開ドキュメントが薄い。API キーで action の作成・更新はできるが、アプリの作成と `is_staging` の変更は不可＝**CLI だけで準備を完結できない**
 - **一番効く改善1つ**: `/api/v2/verify` が UA 無しのリクエストにも **JSON でエラーを返すこと**（現状は HTML の 403 ＝ クライアントの `res.json()` が構文エラーで落ち、本当の原因に辿り着けない）
 - **失敗経路の実装**（拒否・期限切れ・取消・資格なし）で気づいたこと: `___`
+
+### World ID for Agents（2026-09-25・本番で一周）
+
+- **時間**: 承認まで約90分。うち **60分は `/authorize` の切り分け**に消えた
+- **何が起きたか**: docs とポータルの案内に従って authorization code + PKCE で組んだが、`/authorize` が**あらゆる組み合わせで `invalid_request`** を返す。nonce・acr_values を足しても、パラメータを削っても同じ。**存在しない client_id でも同じ応答**だったので、パラメータ不足ではないと判断して別の grant を探した
+- **解決**: discovery に `device_authorization_endpoint` があった。client_id だけ送ると `invalid_client`（＝client は実在する）、**HTTP Basic を付けたら即座に user_code が返った**。以後 RFC 8628 で実装し、本番で一周（ask → コード表示 → スマホで承認 → ID トークンを JWKS 検証 → 保護された行為が通る）
+- **結果的に設計が良くなった**: device フローは「エージェントがコードを出し、人間は別の場所で承認する」＝この作品そのもの。リダイレクト URI の登録も要らない
+- **`sub` は2回の承認で同一**だった＝pairwise で連続性が取れる。`auth_time` も入るので「承認の鮮度」を条件にできる
+- **足りなかった docs**: `sandbox.auth.world.org/docs` は「OIDC で繋ぐ」「詳細は公開の統合ガイドと `/mcp` を見よ」で止まっており、**`/authorize` の必須パラメータも device フローの手順も載っていない**。賞ページから docs に来た人は、ここで必ず止まる
+- **一番効く改善**: **`/authorize` のエラーを `invalid_request` 一本にしない**（何が足りないかを返す）。次点で、**device フローを docs の先頭に置く**——エージェント向けの IdP なら、リダイレクトを持たない呼び出し側が既定のはずで、実際それが唯一通った道だった
+- **ポータル側**: Redirect URI が **HTTPS 必須**で `http://localhost` を受け付けない。ローカルで試す導線が無く、先に Workers へデプロイして URL を確定させる必要があった（device フローに移った結果、この登録自体が不要になった）
 - **docs に無かった挙動（09-22 実測）**: `/api/v2/verify` は **User-Agent が無いリクエストを nginx の 403 HTML で弾く**。Cloudflare Workers の `fetch` は既定で UA を送らないので、正しい app_id と action でも全て 403 になる。本文が JSON でないため `res.json()` が `Unexpected token '<'` で落ち、原因が隠れる（未知の app_id も同じ 403 HTML なので、誤って「app_id が違う」と判断しかけた）。UA を1つ付けるだけで解決。
 
 ## ENS（ENSv2 Sepolia）
