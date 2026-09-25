@@ -1,48 +1,71 @@
-// 「人に聞く」の実装。World ID for Agents（Human Continuity IdP）は標準の OIDC で、
-// 認可コード + PKCE。本人を認可画面へ送り、戻ってきた ID トークンを**サーバで**検証する。
-// 検証は jose で JWKS を引いて行う＝クライアントの申告は一切 authorization に使わない
-// （賞の必須要件: "do not treat an unvalidated client response as authorization"）。
+// 「人に聞く」の実装。World ID for Agents（Human Continuity IdP）は RFC 8628 の
+// device 認可フローで動かす——エージェントがコードを出し、**人間はスマホで承認する**。
+// リダイレクトが要らないので、エージェントが主語の設計にそのまま乗る。
 //
-// sub は pairwise（このクライアント固有の匿名 ID）。誰かは分からないが、
-// **同じ人が戻ってきたか**は分かる＝許諾の連続性に必要なのはこれだけ。
+// 重要な線: 承認と認めるのは **ID トークンをサーバで JWKS 検証した後だけ**。
+// クライアントの申告は一切 authorization に使わない（賞の必須要件）。
+// sub は pairwise＝誰かは分からないが「前と同じ人か」は分かる。auth_time で
+// 「いつ承認したか」も取れるので、承認の鮮度を条件にできる。
 import { createRemoteJWKSet, jwtVerify } from "jose";
 
 const ISSUER = "https://sandbox.auth.world.org";
-const AUTHORIZE = `${ISSUER}/api/v1/authorize`;
+const DEVICE = `${ISSUER}/api/v1/device_authorization`;
 const TOKEN = `${ISSUER}/api/v1/token`;
 const JWKS = createRemoteJWKSet(new URL(`${ISSUER}/.well-known/jwks.json`));
+const DEVICE_GRANT = "urn:ietf:params:oauth:grant-type:device_code";
 
 export type Pending = {
   requestId: string;
   subject: string;
   scope: string;
-  /** PKCE の検証子と CSRF 対策の state */
-  verifier: string;
-  state: string;
+  deviceCode: string;
+  userCode: string;
+  verifyUrl: string;
   createdAt: number;
-  /** 承認が返るまでの猶予。切れたら実行しない＝失敗経路のひとつ */
+  /** 返事の期限。切れたら実行しない＝失敗経路のひとつ */
   expiresAt: number;
   result?: "approved" | "denied" | "expired";
-  /** 承認した人の pairwise sub。前回と同じ人かの判定に使う */
+  /** 承認した人の pairwise sub */
   sub?: string;
+  /** 承認した時刻（ID トークンの auth_time） */
+  authTime?: number;
 };
 
+type Row = {
+  state: string;
+  request_id: string;
+  subject: string;
+  scope: string;
+  verifier: string; // device_code をここに持つ
+  created_at: number;
+  expires_at: number;
+  result: string | null;
+  sub: string | null;
+};
 
+const toPending = (r: Row): Pending => ({
+  requestId: r.request_id,
+  subject: r.subject,
+  scope: r.scope,
+  deviceCode: r.verifier,
+  userCode: r.state,
+  verifyUrl: `${ISSUER}/device`,
+  createdAt: r.created_at,
+  expiresAt: r.expires_at,
+  result: (r.result as Pending["result"]) ?? undefined,
+  sub: r.sub ?? undefined,
+});
 
-function b64url(bytes: Uint8Array) {
-  return btoa(String.fromCharCode(...bytes)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+function basic(clientId: string, clientSecret: string) {
+  return `Basic ${btoa(`${clientId}:${clientSecret}`)}`;
 }
 
-function random(n = 32) {
-  return b64url(crypto.getRandomValues(new Uint8Array(n)));
-}
+const HEADERS = { "content-type": "application/x-www-form-urlencoded", "user-agent": "consent-ledger/0.1" };
 
-async function challenge(verifier: string) {
-  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(verifier));
-  return b64url(new Uint8Array(digest));
-}
-
-/** 人に聞きに行く。返した URL へ本人を送る。 */
+/**
+ * 人に聞きに行く。返すのは、人間に見せるコードと URL。
+ * 待ち時間の既定は2分＝返事が来なければ実行しない（sketch の open question への答え）。
+ */
 export async function startApproval(
   db: D1Database,
   input: {
@@ -50,132 +73,123 @@ export async function startApproval(
     subject: string;
     scope: string;
     clientId: string;
-    redirectUri: string;
+    clientSecret: string;
     ttlMs?: number;
   },
-) {
-  const verifier = random(48);
-  const state = random();
+): Promise<Pending> {
+  const res = await fetch(DEVICE, {
+    method: "POST",
+    headers: { ...HEADERS, authorization: basic(input.clientId, input.clientSecret) },
+    body: new URLSearchParams({ scope: "openid" }),
+  });
+  const text = await res.text();
+  if (!res.ok || !text.startsWith("{")) {
+    throw new Error(`device_authorization failed (HTTP ${res.status}): ${text.slice(0, 160)}`);
+  }
+  const d = JSON.parse(text) as {
+    device_code: string;
+    user_code: string;
+    verification_uri: string;
+    verification_uri_complete?: string;
+  };
+
   const now = Date.now();
   const p: Pending = {
     requestId: input.requestId,
     subject: input.subject,
     scope: input.scope,
-    verifier,
-    state,
+    deviceCode: d.device_code,
+    userCode: d.user_code,
+    verifyUrl: d.verification_uri_complete ?? d.verification_uri,
     createdAt: now,
-    expiresAt: now + (input.ttlMs ?? 120_000), // 既定2分。返事が来ない時間の設計は sketch の open question
+    expiresAt: now + (input.ttlMs ?? 120_000),
   };
+
   await db
     .prepare(
       "INSERT INTO approvals (state, request_id, subject, scope, verifier, created_at, expires_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
     )
-    .bind(state, p.requestId, p.subject, p.scope, verifier, now, p.expiresAt)
+    .bind(p.userCode, p.requestId, p.subject, p.scope, p.deviceCode, now, p.expiresAt)
     .run();
-
-  const url = new URL(AUTHORIZE);
-  url.searchParams.set("client_id", input.clientId);
-  url.searchParams.set("redirect_uri", input.redirectUri);
-  url.searchParams.set("response_type", "code");
-  url.searchParams.set("scope", "openid");
-  url.searchParams.set("state", state);
-  url.searchParams.set("code_challenge", await challenge(verifier));
-  url.searchParams.set("code_challenge_method", "S256");
-  return { url: url.toString(), pending: p };
+  return p;
 }
 
-/** 認可画面から戻ってきたところ。ここで初めて「承認された」と認める。 */
-type ARow = {
-  state: string;
-  request_id: string;
-  subject: string;
-  scope: string;
-  verifier: string;
-  created_at: number;
-  expires_at: number;
-  result: string | null;
-  sub: string | null;
-};
-
-const toPending = (r: ARow): Pending => ({
-  requestId: r.request_id,
-  subject: r.subject,
-  scope: r.scope,
-  verifier: r.verifier,
-  state: r.state,
-  createdAt: r.created_at,
-  expiresAt: r.expires_at,
-  result: (r.result as Pending["result"]) ?? undefined,
-  sub: r.sub ?? undefined,
-});
-
-async function setResult(db: D1Database, state: string, result: string, sub?: string) {
-  await db.prepare("UPDATE approvals SET result = ?, sub = ? WHERE state = ?").bind(result, sub ?? null, state).run();
+async function setResult(db: D1Database, userCode: string, result: string, sub?: string) {
+  await db.prepare("UPDATE approvals SET result = ?, sub = ? WHERE state = ?").bind(result, sub ?? null, userCode).run();
 }
 
-export async function completeApproval(
+/**
+ * 承認されたかを見に行く。承認されていれば ID トークンを検証し、そこで初めて認める。
+ * 保留中は pending のまま返す＝呼ぶ側は待つか、諦めるかを選べる。
+ */
+export async function pollApproval(
   db: D1Database,
-  input: {
-    code: string;
-    state: string;
-    clientId: string;
-    clientSecret?: string;
-    redirectUri: string;
-  },
-): Promise<{ ok: boolean; reason: string; pending?: Pending }> {
-  const row = await db.prepare("SELECT * FROM approvals WHERE state = ?").bind(input.state).first<ARow>();
-  const p = row ? toPending(row) : undefined;
-  if (!p) return { ok: false, reason: "Unknown or reused state — refusing." };
-  if (p.result) return { ok: false, reason: `This request was already ${p.result}.`, pending: p };
+  input: { requestId: string; clientId: string; clientSecret: string },
+): Promise<{ status: "waiting" | "approved" | "denied" | "expired"; reason: string; pending?: Pending }> {
+  const row = await db
+    .prepare("SELECT * FROM approvals WHERE request_id = ? ORDER BY created_at DESC")
+    .bind(input.requestId)
+    .first<Row>();
+  if (!row) return { status: "denied", reason: "No such approval request." };
+  const p = toPending(row);
+  if (p.result) return { status: p.result, reason: `Already ${p.result}.`, pending: p };
+
   if (Date.now() > p.expiresAt) {
-    await setResult(db, p.state, "expired");
+    await setResult(db, p.userCode, "expired");
     p.result = "expired";
-    return { ok: false, reason: "The human did not answer in time; the action does not proceed.", pending: p };
+    return {
+      status: "expired",
+      reason: "The human did not answer in time; the action does not proceed.",
+      pending: p,
+    };
   }
 
-  const body = new URLSearchParams({
-    grant_type: "authorization_code",
-    code: input.code,
-    redirect_uri: input.redirectUri,
-    client_id: input.clientId,
-    code_verifier: p.verifier,
+  const res = await fetch(TOKEN, {
+    method: "POST",
+    headers: { ...HEADERS, authorization: basic(input.clientId, input.clientSecret) },
+    body: new URLSearchParams({ grant_type: DEVICE_GRANT, device_code: p.deviceCode }),
   });
-  const headers: Record<string, string> = {
-    "content-type": "application/x-www-form-urlencoded",
-    "user-agent": "consent-ledger/0.1",
-  };
-  if (input.clientSecret) {
-    headers.authorization = `Basic ${btoa(`${input.clientId}:${input.clientSecret}`)}`;
-  }
-
-  const res = await fetch(TOKEN, { method: "POST", headers, body });
   const text = await res.text();
-  if (!res.ok || !text.startsWith("{")) {
-    await setResult(db, p.state, "denied");
+  const body = text.startsWith("{") ? (JSON.parse(text) as Record<string, string>) : {};
+
+  if (!res.ok) {
+    // まだ承認されていない／急ぎすぎ＝失敗ではない
+    if (body.error === "authorization_pending" || body.error === "slow_down") {
+      return { status: "waiting", reason: "Waiting for the human to approve.", pending: p };
+    }
+    await setResult(db, p.userCode, "denied");
     p.result = "denied";
-    return { ok: false, reason: `Token exchange failed (HTTP ${res.status}): ${text.slice(0, 160)}`, pending: p };
-  }
-  const token = JSON.parse(text) as { id_token?: string };
-  if (!token.id_token) {
-    await setResult(db, p.state, "denied");
-    p.result = "denied";
-    return { ok: false, reason: "No id_token in the response.", pending: p };
+    return {
+      status: "denied",
+      reason: `The human declined or the request failed (${body.error ?? res.status}); the action does not proceed.`,
+      pending: p,
+    };
   }
 
-  // サーバ側の検証。ここを通らないものは承認として扱わない。
+  if (!body.id_token) {
+    await setResult(db, p.userCode, "denied");
+    return { status: "denied", reason: "No id_token in the response.", pending: p };
+  }
+
+  // ここが線: 検証を通ったものだけを承認として扱う。
   try {
-    const { payload } = await jwtVerify(token.id_token, JWKS, {
-      issuer: ISSUER,
-      audience: input.clientId,
-    });
+    const { payload } = await jwtVerify(body.id_token, JWKS, { issuer: ISSUER, audience: input.clientId });
     p.sub = String(payload.sub);
+    p.authTime = typeof payload.auth_time === "number" ? payload.auth_time : undefined;
     p.result = "approved";
-    await setResult(db, p.state, "approved", p.sub);
-    return { ok: true, reason: `Approved by ${p.sub} (pairwise subject).`, pending: p };
+    await setResult(db, p.userCode, "approved", p.sub);
+    return {
+      status: "approved",
+      reason: `Approved by ${p.sub} (pairwise subject), verified against the issuer's JWKS.`,
+      pending: p,
+    };
   } catch (e) {
-    await setResult(db, p.state, "denied");
-    p.result = "denied";
-    return { ok: false, reason: `ID token failed verification: ${e instanceof Error ? e.message : String(e)}`, pending: p };
+    await setResult(db, p.userCode, "denied");
+    return {
+      status: "denied",
+      reason: `ID token failed verification: ${e instanceof Error ? e.message : String(e)}`,
+      pending: p,
+    };
   }
 }
 
@@ -183,11 +197,11 @@ export async function getPendingByRequest(db: D1Database, requestId: string) {
   const row = await db
     .prepare("SELECT * FROM approvals WHERE request_id = ? ORDER BY created_at DESC")
     .bind(requestId)
-    .first<ARow>();
+    .first<Row>();
   return row ? toPending(row) : undefined;
 }
 
-/** 時間切れを掃く。実行前に必ず通す＝待たせたまま通してしまわないため。 */
+/** 時間切れを掃く。待たせたまま通してしまわないため。 */
 export async function sweep(db: D1Database, now = Date.now()) {
   await db.prepare("UPDATE approvals SET result = 'expired' WHERE result IS NULL AND expires_at < ?").bind(now).run();
 }

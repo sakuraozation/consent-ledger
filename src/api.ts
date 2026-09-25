@@ -1,6 +1,6 @@
 // 照会の口。生成する側（エージェント）はここだけ見ればよい。
 import { Hono } from "hono";
-import { completeApproval, getPendingByRequest, startApproval, sweep } from "./approval";
+import { getPendingByRequest, pollApproval, startApproval, sweep } from "./approval";
 import { type Consent, all, check, put, revoke } from "./ledger";
 
 export const api = new Hono<{ Bindings: Env }>();
@@ -38,63 +38,59 @@ api.post("/consents/:id/revoke", async (c) => {
 
 api.get("/consents", async (c) => c.json(await all(c.env.DB)));
 
-/** 「人に聞く」を開始する。check が ask を返した時に呼ぶ。 */
+/** 「人に聞く」を開始する。check が ask を返した時に呼ぶ。人間に見せるコードを返す。 */
 api.post("/approvals", async (c) => {
   const clientId = c.env.WORLD_OIDC_CLIENT_ID;
-  if (!clientId) return c.json({ error: "WORLD_OIDC_CLIENT_ID is not configured" }, 500);
+  const clientSecret = c.env.WORLD_OIDC_CLIENT_SECRET;
+  if (!clientId || !clientSecret) return c.json({ error: "World OIDC client is not configured" }, 500);
   const b = (await c.req.json().catch(() => null)) as
     | { requestId?: string; subject?: string; scope?: string }
     | null;
   if (!b?.requestId || !b.subject || !b.scope) {
     return c.json({ error: "requestId, subject and scope are required" }, 400);
   }
-  const { url, pending } = await startApproval(c.env.DB, {
-    requestId: b.requestId,
-    subject: b.subject,
-    scope: b.scope,
-    clientId,
-    redirectUri: new URL("/approvals/callback", c.req.url).toString(),
-  });
-  return c.json({ approveUrl: url, expiresAt: pending.expiresAt });
-});
-
-/** 認可画面からの戻り。承認されたら許諾を作り直す（期限切れの更新もここ）。 */
-api.get("/approvals/callback", async (c) => {
-  const clientId = c.env.WORLD_OIDC_CLIENT_ID;
-  if (!clientId) return c.text("WORLD_OIDC_CLIENT_ID is not configured", 500);
-  const code = c.req.query("code");
-  const state = c.req.query("state");
-  if (!code || !state) {
-    return c.text("The human declined or the provider returned no code — the action does not proceed.", 400);
+  try {
+    const p = await startApproval(c.env.DB, {
+      requestId: b.requestId,
+      subject: b.subject,
+      scope: b.scope,
+      clientId,
+      clientSecret,
+    });
+    // 人間に見せるのはこの2つだけ。エージェントは待つ。
+    return c.json({ userCode: p.userCode, verifyUrl: p.verifyUrl, expiresAt: p.expiresAt });
+  } catch (e) {
+    return c.json({ error: e instanceof Error ? e.message : String(e) }, 502);
   }
-  const r = await completeApproval(c.env.DB, {
-    code,
-    state,
-    clientId,
-    clientSecret: c.env.WORLD_OIDC_CLIENT_SECRET,
-    redirectUri: new URL("/approvals/callback", c.req.url).toString(),
-  });
-  if (!r.ok || !r.pending) return c.text(r.reason, 403);
-
-  await put(c.env.DB, {
-    id: crypto.randomUUID(),
-    subject: r.pending.subject,
-    scopes: [r.pending.scope],
-    expiresAt: Date.now() + 60_000,
-  });
-  return c.text(`${r.reason}\nConsent granted for "${r.pending.scope}".`);
 });
 
-/** 承認の状態を見る。待っている間に何が起きているかを画面に出すため。 */
+/** 承認されたか見に行く。承認されていれば許諾を作り直す（期限切れの更新もここ）。 */
 api.get("/approvals/:requestId", async (c) => {
+  const clientId = c.env.WORLD_OIDC_CLIENT_ID;
+  const clientSecret = c.env.WORLD_OIDC_CLIENT_SECRET;
+  if (!clientId || !clientSecret) return c.json({ error: "World OIDC client is not configured" }, 500);
   await sweep(c.env.DB);
-  const p = await getPendingByRequest(c.env.DB, c.req.param("requestId"));
-  if (!p) return c.json({ error: "not found" }, 404);
+  const r = await pollApproval(c.env.DB, { requestId: c.req.param("requestId"), clientId, clientSecret });
+
+  if (r.status === "approved" && r.pending) {
+    const existing = await getPendingByRequest(c.env.DB, r.pending.requestId);
+    // 承認された時だけ許諾を作る。ここを通らない限り生成は起きない。
+    await put(c.env.DB, {
+      id: crypto.randomUUID(),
+      subject: r.pending.subject,
+      scopes: [r.pending.scope],
+      expiresAt: Date.now() + 60_000,
+      custodian: existing?.sub,
+    });
+  }
+
   return c.json({
-    requestId: p.requestId,
-    scope: p.scope,
-    status: p.result ?? "waiting",
-    expiresAt: p.expiresAt,
-    sub: p.sub,
+    requestId: c.req.param("requestId"),
+    status: r.status,
+    reason: r.reason,
+    scope: r.pending?.scope,
+    userCode: r.pending?.userCode,
+    expiresAt: r.pending?.expiresAt,
+    approvedBy: r.pending?.sub,
   });
 });

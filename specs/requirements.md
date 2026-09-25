@@ -47,11 +47,11 @@ login screen added to an existing product."*
 **Note on the page: "We are mocking proofs now, so you don't need sandbox app anymore."**
 Proofs are mocked in the dev environment — no sandbox World App setup required.
 
-- [ ] Integrate with the official **World ID for Agents dev environment provided for the
+- [x] Integrate with the official **World ID for Agents dev environment provided for the
       event** (docs `sandbox.auth.world.org/docs`, portal `/portal`, plugin
       `github.com/worldcoin/world-id-agent-plugin`)
-- [ ] Demonstrate the complete journey: verification request → user completion →
-      validated result → **the protected action**
+- [x] Demonstrate the complete journey: verification request → user completion →
+      validated result → **the protected action** — verified in production 2026-09-25
 - [x] Demonstrate a **denied, expired, cancelled or otherwise unsuccessful path where
       the protected action does not occur** — declined (no code), unknown state, and
       deadline expiry all refuse

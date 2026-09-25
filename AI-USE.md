@@ -18,7 +18,7 @@ decisions were mine, per the event's attribution rule.
 | `prompts/*` | me |
 | `src/ledger.ts` | Claude Code, from my spec of the four outcomes and the check order |
 | `src/api.ts` | Claude Code |
-| `src/approval.ts` | Claude Code, against the OIDC discovery document I had it read |
+| `src/approval.ts` | Claude Code, against the OIDC discovery document I had it read; rewritten for the device flow after the code flow failed |
 | `migrations/*` | Claude Code |
 | `src/worldid.ts`, `scripts/*` | Claude Code, pre-event (disclosed scaffold) |
 
@@ -29,4 +29,5 @@ decisions were mine, per the event's attribution rule.
 - the cut line for Saturday 18:00
 - the two-minute deadline on a pending approval, and that expiry stops the action rather than erroring
 - the order of the checks, and the rule that an expired consent asks the human rather than denying
+- the decision to abandon the authorization-code flow rather than keep debugging it
 - the pitch
