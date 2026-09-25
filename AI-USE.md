@@ -19,6 +19,7 @@ decisions were mine, per the event's attribution rule.
 | `src/ledger.ts` | Claude Code, from my spec of the four outcomes and the check order |
 | `src/api.ts` | Claude Code |
 | `src/approval.ts` | Claude Code, against the OIDC discovery document I had it read |
+| `migrations/*` | Claude Code |
 | `src/worldid.ts`, `scripts/*` | Claude Code, pre-event (disclosed scaffold) |
 
 ## What I decided, not the model

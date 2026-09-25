@@ -27,7 +27,7 @@ export type Pending = {
   sub?: string;
 };
 
-const pending = new Map<string, Pending>();
+
 
 function b64url(bytes: Uint8Array) {
   return btoa(String.fromCharCode(...bytes)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
@@ -43,14 +43,17 @@ async function challenge(verifier: string) {
 }
 
 /** 人に聞きに行く。返した URL へ本人を送る。 */
-export async function startApproval(input: {
-  requestId: string;
-  subject: string;
-  scope: string;
-  clientId: string;
-  redirectUri: string;
-  ttlMs?: number;
-}) {
+export async function startApproval(
+  db: D1Database,
+  input: {
+    requestId: string;
+    subject: string;
+    scope: string;
+    clientId: string;
+    redirectUri: string;
+    ttlMs?: number;
+  },
+) {
   const verifier = random(48);
   const state = random();
   const now = Date.now();
@@ -63,7 +66,12 @@ export async function startApproval(input: {
     createdAt: now,
     expiresAt: now + (input.ttlMs ?? 120_000), // 既定2分。返事が来ない時間の設計は sketch の open question
   };
-  pending.set(state, p);
+  await db
+    .prepare(
+      "INSERT INTO approvals (state, request_id, subject, scope, verifier, created_at, expires_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+    )
+    .bind(state, p.requestId, p.subject, p.scope, verifier, now, p.expiresAt)
+    .run();
 
   const url = new URL(AUTHORIZE);
   url.searchParams.set("client_id", input.clientId);
@@ -77,17 +85,50 @@ export async function startApproval(input: {
 }
 
 /** 認可画面から戻ってきたところ。ここで初めて「承認された」と認める。 */
-export async function completeApproval(input: {
-  code: string;
+type ARow = {
   state: string;
-  clientId: string;
-  clientSecret?: string;
-  redirectUri: string;
-}): Promise<{ ok: boolean; reason: string; pending?: Pending }> {
-  const p = pending.get(input.state);
+  request_id: string;
+  subject: string;
+  scope: string;
+  verifier: string;
+  created_at: number;
+  expires_at: number;
+  result: string | null;
+  sub: string | null;
+};
+
+const toPending = (r: ARow): Pending => ({
+  requestId: r.request_id,
+  subject: r.subject,
+  scope: r.scope,
+  verifier: r.verifier,
+  state: r.state,
+  createdAt: r.created_at,
+  expiresAt: r.expires_at,
+  result: (r.result as Pending["result"]) ?? undefined,
+  sub: r.sub ?? undefined,
+});
+
+async function setResult(db: D1Database, state: string, result: string, sub?: string) {
+  await db.prepare("UPDATE approvals SET result = ?, sub = ? WHERE state = ?").bind(result, sub ?? null, state).run();
+}
+
+export async function completeApproval(
+  db: D1Database,
+  input: {
+    code: string;
+    state: string;
+    clientId: string;
+    clientSecret?: string;
+    redirectUri: string;
+  },
+): Promise<{ ok: boolean; reason: string; pending?: Pending }> {
+  const row = await db.prepare("SELECT * FROM approvals WHERE state = ?").bind(input.state).first<ARow>();
+  const p = row ? toPending(row) : undefined;
   if (!p) return { ok: false, reason: "Unknown or reused state — refusing." };
   if (p.result) return { ok: false, reason: `This request was already ${p.result}.`, pending: p };
   if (Date.now() > p.expiresAt) {
+    await setResult(db, p.state, "expired");
     p.result = "expired";
     return { ok: false, reason: "The human did not answer in time; the action does not proceed.", pending: p };
   }
@@ -110,11 +151,13 @@ export async function completeApproval(input: {
   const res = await fetch(TOKEN, { method: "POST", headers, body });
   const text = await res.text();
   if (!res.ok || !text.startsWith("{")) {
+    await setResult(db, p.state, "denied");
     p.result = "denied";
     return { ok: false, reason: `Token exchange failed (HTTP ${res.status}): ${text.slice(0, 160)}`, pending: p };
   }
   const token = JSON.parse(text) as { id_token?: string };
   if (!token.id_token) {
+    await setResult(db, p.state, "denied");
     p.result = "denied";
     return { ok: false, reason: "No id_token in the response.", pending: p };
   }
@@ -127,20 +170,24 @@ export async function completeApproval(input: {
     });
     p.sub = String(payload.sub);
     p.result = "approved";
+    await setResult(db, p.state, "approved", p.sub);
     return { ok: true, reason: `Approved by ${p.sub} (pairwise subject).`, pending: p };
   } catch (e) {
+    await setResult(db, p.state, "denied");
     p.result = "denied";
     return { ok: false, reason: `ID token failed verification: ${e instanceof Error ? e.message : String(e)}`, pending: p };
   }
 }
 
-export function getPendingByRequest(requestId: string) {
-  return [...pending.values()].find((p) => p.requestId === requestId);
+export async function getPendingByRequest(db: D1Database, requestId: string) {
+  const row = await db
+    .prepare("SELECT * FROM approvals WHERE request_id = ? ORDER BY created_at DESC")
+    .bind(requestId)
+    .first<ARow>();
+  return row ? toPending(row) : undefined;
 }
 
 /** 時間切れを掃く。実行前に必ず通す＝待たせたまま通してしまわないため。 */
-export function sweep(now = Date.now()) {
-  for (const p of pending.values()) {
-    if (!p.result && now > p.expiresAt) p.result = "expired";
-  }
+export async function sweep(db: D1Database, now = Date.now()) {
+  await db.prepare("UPDATE approvals SET result = 'expired' WHERE result IS NULL AND expires_at < ?").bind(now).run();
 }

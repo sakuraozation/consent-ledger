@@ -20,3 +20,8 @@ NETWORK = "eip155:84532"
 
 # World ID。Developer Portal（IDKit）と sandbox.auth.world.org（for Agents）。
 # 値は .dev.vars（git 管理外）に置く。
+
+[[d1_databases]]
+binding = "DB"
+database_name = "consent-ledger"
+database_id = "29bb38c4-4d46-489d-b21b-76ab87555517"
