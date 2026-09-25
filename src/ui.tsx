@@ -73,7 +73,11 @@ export const Page: FC<PropsWithChildren<{ title: string; here?: string; refresh?
 
 const when = (ms: number) => new Date(ms).toISOString().slice(11, 19) + "Z";
 
-export const ConsentCard: FC<{ c: Consent; revocable?: boolean }> = ({ c, revocable }) => {
+export const ConsentCard: FC<{ c: Consent; revocable?: boolean; revokeAction?: string }> = ({
+  c,
+  revocable,
+  revokeAction,
+}) => {
   const revoked = c.revokedAt !== undefined;
   const expired = !revoked && c.expiresAt <= Date.now();
   return (
@@ -81,14 +85,14 @@ export const ConsentCard: FC<{ c: Consent; revocable?: boolean }> = ({ c, revoca
       <div class="row">
         <strong class={revoked ? "strike" : undefined}>{c.scopes.join(", ")}</strong>
         {revocable && !revoked ? (
-          <form method="post" action={`/me/${c.id}/revoke`}>
+          <form method="post" action={revokeAction ?? `/me/${c.id}/revoke`}>
             <button type="submit">Revoke</button>
           </form>
         ) : null}
       </div>
       <div class="meta">
         {revoked
-          ? `revoked at ${when(c.revokedAt as number)} — no longer usable by anyone`
+          ? `revoked by the ${c.revokedBy ?? "custodian"} at ${when(c.revokedAt as number)} — no longer usable by anyone`
           : expired
             ? `expired at ${when(c.expiresAt)} — the next request will ask you again`
             : `valid until ${when(c.expiresAt)}`}

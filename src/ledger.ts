@@ -5,13 +5,19 @@
 
 export type Decision = "allow" | "deny" | "ask" | "revoked";
 
+import { activeFor } from "./delegation";
+
 export type Consent = {
   id: string;
   subject: string;
   scopes: string[];
   expiresAt: number;
   revokedAt?: number;
+  /** 誰が取り消したか。custodian が日常・subject は本人の一手 */
+  revokedBy?: "custodian" | "subject";
   custodian?: string;
+  /** どの委任の下で出したか。委任が切れればこの許諾も効かない */
+  delegationId?: string;
 };
 
 export type Verdict = {
@@ -28,7 +34,9 @@ type Row = {
   scopes: string;
   expires_at: number;
   revoked_at: number | null;
+  revoked_by: string | null;
   custodian: string | null;
+  delegation_id: string | null;
 };
 
 const toConsent = (r: Row): Consent => ({
@@ -37,15 +45,26 @@ const toConsent = (r: Row): Consent => ({
   scopes: JSON.parse(r.scopes) as string[],
   expiresAt: r.expires_at,
   revokedAt: r.revoked_at ?? undefined,
+  revokedBy: (r.revoked_by as Consent["revokedBy"]) ?? undefined,
   custodian: r.custodian ?? undefined,
+  delegationId: r.delegation_id ?? undefined,
 });
 
 export async function put(db: D1Database, c: Consent): Promise<Consent> {
   await db
     .prepare(
-      "INSERT INTO consents (id, subject, scopes, expires_at, revoked_at, custodian, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+      "INSERT INTO consents (id, subject, scopes, expires_at, revoked_at, custodian, created_at, delegation_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
     )
-    .bind(c.id, c.subject, JSON.stringify(c.scopes), c.expiresAt, c.revokedAt ?? null, c.custodian ?? null, Date.now())
+    .bind(
+      c.id,
+      c.subject,
+      JSON.stringify(c.scopes),
+      c.expiresAt,
+      c.revokedAt ?? null,
+      c.custodian ?? null,
+      Date.now(),
+      c.delegationId ?? null,
+    )
     .run();
   return c;
 }
@@ -73,7 +92,19 @@ export async function check(
   input: { subject: string; scope: string; now?: number },
 ): Promise<Verdict> {
   const now = input.now ?? Date.now();
-  const found = await bySubject(db, input.subject);
+  const [found, delegation] = await Promise.all([bySubject(db, input.subject), activeFor(db, input.subject)]);
+
+  // 委任が無い／取り下げられている＝事務所が出した許諾は効かない。本人の最後の一手。
+  if (!delegation) {
+    const issued = found.filter((c) => c.delegationId !== undefined);
+    if (issued.length > 0) {
+      return {
+        decision: "revoked",
+        reason:
+          "The person withdrew the delegation to their agency, so every consent issued under it no longer applies.",
+      };
+    }
+  }
 
   if (found.length === 0) {
     return {
@@ -106,7 +137,7 @@ export async function check(
   if (revoked) {
     return {
       decision: "revoked",
-      reason: `Consent ${revoked.id} was revoked by the subject at ${new Date(revoked.revokedAt as number).toISOString()}.`,
+      reason: `Consent ${revoked.id} was revoked by the ${revoked.revokedBy ?? "custodian"} at ${new Date(revoked.revokedAt as number).toISOString()}.`,
       consentId: revoked.id,
     };
   }
@@ -181,12 +212,18 @@ export async function usesBySubject(db: D1Database, subject: string, limit = 50)
 }
 
 /** 本人が取り消す。窓口を通さずに効く＝ここが設計の芯。 */
-export async function revoke(db: D1Database, id: string, now = Date.now()): Promise<Consent | undefined> {
+export async function revoke(
+  db: D1Database,
+  id: string,
+  by: "custodian" | "subject" = "custodian",
+  now = Date.now(),
+): Promise<Consent | undefined> {
   const row = await db.prepare("SELECT * FROM consents WHERE id = ?").bind(id).first<Row>();
   if (!row) return undefined;
   if (row.revoked_at === null) {
-    await db.prepare("UPDATE consents SET revoked_at = ? WHERE id = ?").bind(now, id).run();
+    await db.prepare("UPDATE consents SET revoked_at = ?, revoked_by = ? WHERE id = ?").bind(now, by, id).run();
     row.revoked_at = now;
+    row.revoked_by = by;
   }
   return toConsent(row);
 }

@@ -1,9 +1,10 @@
 # consent-ledger
 
-**She can take it back, and the agency cannot stop her.**
+**Her agency can finally stop this — and she can take the authority back.**
 
-A consent record for body-scan data, built so that an AI pipeline has to ask before it
-generates — and so the person who was scanned can revoke without going through anyone.
+A consent record for body-scan data, built so an AI pipeline has to ask before it
+generates. The agency does the work, because that is what an agency is for. The person
+holds one thing only: the authority itself, which she can withdraw without asking.
 
 Live: **https://consent-ledger.yoshitatsu.workers.dev** · [`/generate`](https://consent-ledger.yoshitatsu.workers.dev/generate) ·
 [`/me`](https://consent-ledger.yoshitatsu.workers.dev/me) · [`/agency`](https://consent-ledger.yoshitatsu.workers.dev/agency)
@@ -18,6 +19,19 @@ when it happens, because the output does not always look like her face.
 
 What she wants is not a ban. It is a **scope**, an **expiry**, and the ability to **take it
 back**.
+
+## Who this is for, and who it is against
+
+A model cannot police this herself — she cannot even tell when it happens, and she has an
+agency precisely because managing her own commercial use is not her job. **The agency is
+not the adversary here. The adversary is whoever reuses the scan without asking**, and
+today neither the model nor her agency can do anything about it.
+
+So the agency is the operator: it says what the body data may be used for, and it stops a
+use the moment it hears about one. The person delegates that, and keeps exactly one power
+— **withdrawing the delegation**, which kills every consent issued under it at once and
+cannot be undone by the agency. That backstop is not a guard against the agency; it is
+what makes the arrangement worth trusting in the first place.
 
 ## Why the agency is the customer
 
@@ -38,14 +52,32 @@ human unchanged:
 
 | | when | what happens |
 |---|---|---|
-| `allow` | in scope, unexpired, not revoked | generation proceeds |
+| `allow` | in scope, unexpired, not revoked, issued under a live delegation | generation proceeds |
 | `deny` | the use was never granted | nobody is asked — there is nothing to ask about |
 | `ask` | no record, or it expired | a human decides; **nothing is generated while waiting** |
 | `revoked` | she took it back | refused, and the reason says so |
 
-The order of those checks is the argument: revocation outranks scope and expiry, and an
-expired consent falls through to `ask` rather than `deny` — expiry means nobody has asked
-her lately, not that she changed her mind.
+The order of those checks is the argument. A withdrawn delegation outranks everything —
+nothing issued under it survives. Within a scope, revocation outranks expiry. And an
+expired consent falls through to `ask` rather than `deny`, because expiry means nobody has
+asked her lately, not that she changed her mind.
+
+## This is a permission model, and it belongs in ENSv2
+
+What we built is delegated, revocable authority over a name. That is exactly what ENSv2
+added, so the mapping is one-to-one — we implemented it in our own layer only because the
+Sepolia registration would not go through during the event (see `FEEDBACK.md`).
+
+| Here | ENSv2 |
+|---|---|
+| The person | the parent name |
+| The agency's authority to act for her | a subname, with a role granted under Enhanced Access Control |
+| Issuing and revoking consents | the rights that role carries |
+| Withdrawing the delegation | revoking the role — only the parent can do it |
+| A consent record | a record under the subname's resolver |
+
+Putting it there would make the backstop structural rather than a rule our server
+enforces. That is the next thing to build, and the reason the design was shaped this way.
 
 ## Integration points for judges
 
