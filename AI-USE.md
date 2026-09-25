@@ -16,11 +16,14 @@ decisions were mine, per the event's attribution rule.
 |---|---|
 | `specs/*` | me |
 | `prompts/*` | me |
-| _(filled in as the build proceeds)_ | |
+| `src/ledger.ts` | Claude Code, from my spec of the four outcomes and the check order |
+| `src/api.ts` | Claude Code |
+| `src/worldid.ts`, `scripts/*` | Claude Code, pre-event (disclosed scaffold) |
 
 ## What I decided, not the model
 
 - the subject and why the agency is the customer (see `specs/sketch.md` 2–4)
 - the four outcomes and which moment the demo shows
 - the cut line for Saturday 18:00
+- the order of the checks, and the rule that an expired consent asks the human rather than denying
 - the pitch

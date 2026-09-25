@@ -2,6 +2,7 @@ import { HTTPFacilitatorClient } from "@x402/core/server";
 import { ExactEvmScheme } from "@x402/evm/exact/server";
 import { paymentMiddleware, x402ResourceServer } from "@x402/hono";
 import { Hono } from "hono";
+import { api } from "./api";
 import { worldId } from "./worldid";
 
 // Workers では module スコープで env を読めないので、最初のリクエストで組み立てて使い回す。
@@ -53,5 +54,6 @@ app.use("/paid", async (c, next) => {
 app.get("/paid", (c) => c.json({ hello: "paid", at: new Date().toISOString() }));
 
 app.route("/", worldId);
+app.route("/", api);
 
 export default app;
