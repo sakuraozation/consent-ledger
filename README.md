@@ -82,12 +82,43 @@ then **Ask the human** — a code appears, and the page waits. Approve it at
 `sandbox.auth.world.org/device`. If nobody answers before the deadline, the request expires
 and nothing is generated.
 
+## Team
+
+Solo. Sakurao Yoshitatsu — founder of ENVLOP (Tokyo), co-founder of Cross Philosophies.
+We run our own services on AI-first operations and rebuild how work runs inside client
+companies. GitHub [@sakuraozation](https://github.com/sakuraozation) · envlop.co
+
+First web3 hackathon; the subject came from a conversation with a working model, not from
+a list of ideas.
+
 ## Run it
 
 ```sh
 bun install
-cp .env.example .dev.vars   # fill in the World OIDC client
+cp .env.example .dev.vars   # fill in WORLD_OIDC_CLIENT_ID / _SECRET from the sandbox portal
 bun run dev                 # http://localhost:8787
+```
+
+Deploy and apply the schema:
+
+```sh
+bunx wrangler d1 execute consent-ledger --remote --file=migrations/0001_init.sql
+bunx wrangler secret put WORLD_OIDC_CLIENT_ID
+bunx wrangler secret put WORLD_OIDC_CLIENT_SECRET
+bunx wrangler deploy
+```
+
+Check it works, without a browser:
+
+```sh
+B=https://consent-ledger.yoshitatsu.workers.dev
+ID=$(curl -s -X POST $B/consents -H 'content-type: application/json' \
+  -d '{"subject":"model-a","scopes":["ad-image"]}' | jq -r .id)
+curl -s -X POST $B/check -d '{"subject":"model-a","scope":"ad-image"}' \
+  -H 'content-type: application/json'                     # -> allow
+curl -s -X POST $B/consents/$ID/revoke -o /dev/null
+curl -s -X POST $B/check -d '{"subject":"model-a","scope":"ad-image"}' \
+  -H 'content-type: application/json'                     # -> revoked, with the reason
 ```
 
 D1 schema in [`migrations/`](migrations). No images and no scan data are stored — a subject

@@ -74,3 +74,28 @@ generation does not happen. That is the whole demo — the four outcomes in `ske
 - [ ] Commit history shows the sequence; no single giant commit
 - [ ] `specs/`, `prompts/`, `AI-USE.md` present (how the AI was directed)
 - [ ] Submit by **Sunday 09:00**; up to 3 partner prizes per project
+
+---
+
+## Curvegrid — Best AI Agent Project ($1,000)
+
+The brief: *"What happens when AI agents can understand blockchain activity and take
+action on-chain?"* Among the listed ideas: **Policy-Aware Transaction Agent** — "propose or
+execute transactions while respecting rules such as spending limits, approved
+counterparties, or **required human approvals**."
+
+**Using MultiBaas is explicitly not a requirement for this prize.** Judging is on the idea
+and the technical execution.
+
+- [x] Public GitHub repo with project artifacts and a solid README
+- [x] README: one-sentence summary of the project
+- [ ] README: how MultiBaas was used — n/a, we did not use it (say so plainly)
+- [x] README: team intro and social handles
+- [x] README: clear setup and testing instructions
+- [ ] README: MultiBaas experience — n/a
+
+**Why we fit**: the project *is* a policy-aware agent gate. An agent about to act checks a
+policy (scope, expiry, revocation) and, when the policy cannot answer, **requires a human
+approval before the action happens** — which is the listed example almost word for word.
+The agency dashboard is the enterprise-usable UI the sponsor said they care about, without
+using their kit.
