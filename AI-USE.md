@@ -33,3 +33,6 @@ decisions were mine, per the event's attribution rule.
 - the order of the checks, and the rule that an expired consent asks the human rather than denying
 - the decision to abandon the authorization-code flow rather than keep debugging it
 - the pitch
+- the decision to abandon app.ens.dev and call the ETHRegistrar directly, and to read the
+  ABI from the verified source rather than trust the blog post
+- swapping the third prize slot to ENS once the on-chain delegation worked

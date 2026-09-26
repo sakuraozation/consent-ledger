@@ -39,11 +39,12 @@
 
 ## ENS（ENSv2 Sepolia）
 
-事前の「道具に慣れる」段階（2026-09-21〜22）。**読む側は動いた／登録は初見で詰まる箇所が多い**。当日に追記する。
+事前の「道具に慣れる」段階（09-21〜22）で読み取りは動き、**アプリ（app.ens.dev）からの登録は未達**。会期2日目（09-26）に **Registrar を直接呼んで登録が通り、Enhanced Access Control で委任まで動いた**。
 
-- **結果**: 読み取りは動いた。**テスト名の登録は完了しなかった**（09-22・1時間以上を費やして打ち切り）。最終状態＝アプリ上は支払いまで進み「Enabling sessions…」で停止、**ウォレットには署名要求が届かず、アドレスからのトランザクションは1件も出ていない**（nonce 0・残高も未変化＝チェーン上では何も起きていない）
-- **時間**: 読み取り（`scripts/ens.ts`）は約40分。登録は1時間以上で未達
-- **使った機能**: 名前の解決・テキストレコードの読み取り・逆引き（段1）。サブネーム発行は当日
+- **結果**: 登録・委任ともに成功。`consentledger.eth`（tx `0x9ae0d240…`）／`PermissionedResolver` を `VerifiableFactory` 経由でデプロイ（`0x8591D727…`）／`authorizeTextRoles` で付与・剥奪の両方を実行し、**範囲外のキーと剥奪後の書き込みが `EACUnauthorizedAccountRoles` で拒否されることを確認**（`scripts/ens-register.ts`・`scripts/ens-delegate.ts`）
+- **時間**: 読み取り（`scripts/ens.ts`）約40分。登録はアプリ経由で1時間以上を費やして未達、**コントラクト直呼びに切り替えたら約20分**（うち大半はテスト ETH の入手）。委任は約30分
+- **使った機能**: 名前の解決・テキストレコードの読み取り・逆引き／commit-reveal 登録／`VerifiableFactory` での resolver デプロイ／EAC のキー単位の権限付与と剥奪
+- **一番良かった点**: `authorizeTextRoles(name, key, account, grant)` が**テキストキー単位**で権限を切れること。「事務所には許諾のレコードだけ触らせる」が追加のコントラクトを書かずにそのまま表現でき、ブログ（Exploring subnames）が説明していた `grantSetterRoles` より product に近かった。**この粒度が docs の前面に無いのは損**で、ブログの例より実物の方が強い
 - **詰まった所（登録までの順に）**:
   1. **viem の `getEnsAddress` / `getEnsText` が ENSv2 の Universal Resolver で `null` を返す**。docs どおり `resolve(bytes,bytes)` を直接呼べば引ける。helper が v2 に追随していないことは「ENSv2 readiness」のページからは読み取れなかった（`scripts/ens.ts`）
   2. **ウォレットの Testnet Mode が必要**。Phantom は既定で testnet を隠すので、app.ens.dev が「You are not in Testnet mode」で止まる。設定の場所は docs でなくウォレット側にあり、初見では辿れない
@@ -53,7 +54,11 @@
   6. **Sepolia の ENSv2 は状態が定期的にリセットされる**とアプリ内に告知がある（直近 2026-09-15）。練習で作った名前が消える前提で進める必要があり、これは最初に知りたかった
   7. **最終的に登録が完了しなかった**。画面は進み続けるのにウォレットへ署名要求が来ず、切り分ける手段（どの段階で何を待っているか）が画面にもコンソールにも無い
 - **足りなかった機能・docs**: ①サブネーム発行の TypeScript 例が無い（Solidity のチュートリアルのみ）②Sepolia のテスト名を取るまでの前提（Testnet Mode・MockUSDC・ガス）が1ページにまとまっていない
+  8. **`UpgradableUniversalResolverProxy.findResolver` が登録済みの名前に対して `address(0)` を返す**（09-26 実測）。`ETHRegistry.getResolver("consentledger")` は正しい resolver を返すので、レジストリには入っている。汎用の解決経路から引けないため、ENS 対応のアプリからは存在しない名前に見える
+  9. **ブログと実物の API 名が違う**。「Exploring subnames with ENSv2」は `grantSetterRoles(abi.encodeCall(...))` と書いているが、デプロイ済みの `PermissionedResolver` にその関数は無く、`authorizeTextRoles` / `authorizeDataRoles` / `authorizeAddrRoles` / `authorizeNameRoles` の4本に分かれている（実物の方が扱いやすい）。ABI は Blockscout の検証済みソースから読んだ
+  10. **`makeCommitment` と `register` の引数が1つ違う**（`register` だけ `paymentToken` を取る）。docs に並べて書かれていないので、同じ引数だと推測して revert した
 - **一番効く改善1つ**: **登録画面に「テスト用トークンを mint する」ボタンを置くこと**。誰でも呼べる `mint` が既にあるのに導線が無く、ここで一番時間を失った（ハッカソン当日は全員がこの1点で詰まる）
+- **次に効く改善**: **TypeScript から登録・委任まで通す例を1本置くこと**。UI が止まった時に切り分ける手段が無く、結果として UI を捨ててコントラクト直呼びに書き換えたが、それが最初からあれば1時間は使わずに済んだ（ABI は検証済みソースから読むしかなかった）
 
 ## x402（使った場合）
 

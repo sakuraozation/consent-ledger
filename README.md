@@ -78,28 +78,46 @@ nothing issued under it survives. Within a scope, revocation outranks expiry. An
 expired consent falls through to `ask` rather than `deny`, because expiry means nobody has
 asked her lately, not that she changed her mind.
 
-## This is a permission model, and it belongs in ENSv2
+## The same permission model runs on ENSv2, on chain
 
-What we built is delegated, revocable authority over a name. That is exactly what ENSv2
-added, so the mapping is one-to-one — we implemented it in our own layer only because the
-Sepolia registration would not go through during the event (see `FEEDBACK.md`).
+Delegated, revocable authority over a name is what ENSv2 added, so we put the delegation
+there as well as in our own layer. It is registered and working on Sepolia:
 
-| Here | ENSv2 |
+- `consentledger.eth` — registered through the ETHRegistrar directly (commit/reveal, paid
+  in MockUSDC): tx [`0x9ae0d240…`](https://eth-sepolia.blockscout.com/tx/0x9ae0d24042cb81bf0ad84a9a70e7bcd58ffd54ace12fa2b3e38734979bc49075)
+- Resolver: a `PermissionedResolver` deployed through `VerifiableFactory`, with the person
+  as admin — [`0x8591D727…`](https://eth-sepolia.blockscout.com/address/0x8591D727D6a7317f843de72Bd2D31AB31A2841C9)
+
+`authorizeTextRoles(name, key, account, grant)` is the delegation, and it is scoped **per
+text key** — which is finer than we expected and matches the product exactly: the agency
+gets the consent record and nothing else.
+
+| Here | On chain |
 |---|---|
-| The person | the parent name |
-| The agency's authority to act for her | a subname, with a role granted under Enhanced Access Control |
-| Issuing and revoking consents | the rights that role carries |
-| Withdrawing the delegation | revoking the role — only the parent can do it |
-| A consent record | a record under the subname's resolver |
+| The person | admin of the parent name's resolver |
+| Delegating to the agency | `authorizeTextRoles(name, "consent.bodyscan", agency, true)` |
+| The agency issuing a consent | `setText(node, "consent.bodyscan", …)` — succeeds |
+| The agency reaching outside the scope | `setText(node, "avatar", …)` — reverts `EACUnauthorizedAccountRoles` |
+| The person withdrawing the delegation | `authorizeTextRoles(…, false)` — only the admin can |
+| Consents issued under a withdrawn delegation | the agency's next `setText` reverts |
 
-Putting it there would make the backstop structural rather than a rule our server
-enforces. That is the next thing to build, and the reason the design was shaped this way.
+[`scripts/ens-delegate.ts`](scripts/ens-delegate.ts) runs all seven steps against Sepolia,
+including the three that must fail. [`scripts/ens-register.ts`](scripts/ens-register.ts)
+does the registration. Both print their transactions.
+
+Two layers, on purpose. The chain holds *who may speak for whom* — that is the part which
+must not depend on our server being honest or alive. Our layer holds *what each request
+gets back*, because a generation request needs an answer in one round trip and a human
+approval has to be reachable on a phone. The on-chain roles are the backstop; the API is
+the surface.
 
 ## Integration points for judges
 
 | What | Where |
 |---|---|
 | **World ID for Agents** — device flow, ID token verified server-side against the issuer's JWKS | [`src/approval.ts`](src/approval.ts) — `startApproval`, `pollApproval` (the `jwtVerify` call is the line that matters) |
+| **ENSv2** — commit/reveal registration against the ETHRegistrar | [`scripts/ens-register.ts`](scripts/ens-register.ts) |
+| **ENSv2 Enhanced Access Control** — delegation as a per-key role, granted and revoked | [`scripts/ens-delegate.ts`](scripts/ens-delegate.ts) — `authorizeTextRoles`, and the three calls that must revert |
 | The four outcomes and their order | [`src/ledger.ts`](src/ledger.ts) — `check` |
 | API surface | [`src/api.ts`](src/api.ts) |
 | Screens (server-rendered, no client bundle) | [`src/screens.tsx`](src/screens.tsx), [`src/ui.tsx`](src/ui.tsx) |

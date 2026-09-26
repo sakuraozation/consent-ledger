@@ -1,7 +1,14 @@
 # Prize requirements (transcribed 2026-09-25, from the event prize page)
 
-Targeting two World prizes. Each qualification line below is a checkbox to close before
-submission. Wording is the sponsor's; the notes are mine.
+Three partner prizes (the maximum): **World ×2** and **ENS**. Each qualification line below
+is a checkbox to close before submission. Wording is the sponsor's; the notes are mine.
+
+> Slot 3 changed on 09-26: **Curvegrid — Best AI Agent Project ($1,000) → ENS — Best Use of
+> ENSv2 ($6,000)**. The reason is evidence, not the amount: the ENSv2 registration and the
+> Enhanced Access Control delegation now run on Sepolia (`scripts/ens-register.ts`,
+> `scripts/ens-delegate.ts`), whereas the Curvegrid application would have had to say
+> MultiBaas was not used. The Curvegrid section is kept below, unchanged, in case ENS turns
+> out not to accept the submission.
 
 > Amounts changed during the event: both World prizes are now **$5,000, split as up to
 > 2 teams × $2,500** (the page earlier showed $7,500 each).
@@ -77,7 +84,32 @@ generation does not happen. That is the whole demo — the four outcomes in `ske
 
 ---
 
-## Curvegrid — Best AI Agent Project ($1,000)
+## ENS — Best Use of ENSv2 ($6,000)  ← slot 3
+
+The brief rewards work on ENSv2's hierarchical registry, subnames and **Enhanced Access
+Control**, with a bonus for treating names as a namespace for agents — each with its own
+identity and permissions.
+
+- [x] A working demo, not a mockup — `consentledger.eth` is registered on Sepolia and the
+      delegation runs against it (tx and addresses in the README)
+- [x] Public code
+- [x] Uses ENSv2 specifically, not v1 — ETHRegistrar commit/reveal, `PermissionedResolver`
+      deployed through `VerifiableFactory`, EAC roles
+- [x] Enhanced Access Control is load-bearing, not decorative — the delegation *is* the EAC
+      role, and revoking the role is how a person takes authority back
+- [x] Integration debrief with what was hard — [`FEEDBACK.md`](../FEEDBACK.md), including
+      three docs gaps and the blog/ABI mismatch
+- [ ] Mention in the demo video that the record is not resolvable through
+      `UpgradableUniversalResolverProxy` (returns `address(0)`) — say it plainly rather than
+      let a judge find it
+
+**Why we fit**: the product needed exactly one primitive — *delegated authority over a name
+that the person can take back* — and that is what ENSv2 added. `authorizeTextRoles` scopes
+the delegation per text key, so "the agency may write the consent record and nothing else"
+is expressible without writing a contract. The agent angle is the same shape: an agent
+asking to generate is checked against a permission that lives under a name.
+
+## Curvegrid — Best AI Agent Project ($1,000)  ← held in reserve
 
 The brief: *"What happens when AI agents can understand blockchain activity and take
 action on-chain?"* Among the listed ideas: **Policy-Aware Transaction Agent** — "propose or
