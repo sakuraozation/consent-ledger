@@ -236,6 +236,7 @@ export async function sweep(db: D1Database, now = Date.now()): Promise<Pending[]
       scope: p.scope,
       outcome: "unanswered",
       requester: "nobody answered in time",
+      requestId: p.requestId,
     });
   }
   return swept;

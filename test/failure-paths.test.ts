@@ -4,7 +4,7 @@ import { describe, expect, test } from "bun:test";
 import { pendingFor, sweep } from "../src/approval";
 import { AGENCY_SIDE } from "../src/config";
 import { grant } from "../src/delegation";
-import { check, put, recordOutcome, usesBySubject } from "../src/ledger";
+import { check, put, record, recordOutcome, usesBySubject } from "../src/ledger";
 import { verifyProof } from "../src/worldid";
 import { asD1, freshDb } from "./d1";
 
@@ -89,6 +89,38 @@ describe("使用ログ", () => {
     const log = await usesBySubject(db, SUBJECT);
     expect(log[0]?.decision).toBe("approved");
     expect(log[0]?.consentId).toBeUndefined();
+  });
+
+  test("ask の行と結末が requestId で紐づく（画面が1行に畳める）", async () => {
+    const db = asD1(freshDb());
+    const verdict = await check(db, { subject: SUBJECT, scope: "ai-generation" });
+    expect(verdict.decision).toBe("ask");
+    await record(db, { subject: SUBJECT, scope: "ai-generation", verdict, requester: "pipeline" });
+    await recordOutcome(db, {
+      subject: SUBJECT,
+      scope: "ai-generation",
+      outcome: "approved",
+      requestId: verdict.requestId,
+    });
+    const log = await usesBySubject(db, SUBJECT);
+    const ask = log.find((u) => u.decision === "ask");
+    const end = log.find((u) => u.decision === "approved");
+    expect(ask?.requestId).toBe(verdict.requestId as string);
+    // 同じ requestId で引ける＝承認されたあと ask が ask のまま並ばない
+    expect(end?.requestId).toBe(ask?.requestId as string);
+  });
+
+  test("sweep の『答えなかった』も requestId で紐づく", async () => {
+    const db = asD1(freshDb());
+    await db
+      .prepare(
+        "INSERT INTO approvals (state, request_id, subject, scope, verifier, created_at, expires_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+      )
+      .bind("EEEEE-FFFFF", "req-3", SUBJECT, "ai-training", "device-code", Date.now() - 10_000, Date.now() - 1)
+      .run();
+    await sweep(db);
+    const log = await usesBySubject(db, SUBJECT);
+    expect(log.find((u) => u.decision === "unanswered")?.requestId).toBe("req-3");
   });
 });
 

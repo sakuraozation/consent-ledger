@@ -89,3 +89,5 @@ console.log(`\n${out} — ${mins}（${w}x${h}）`);
 if (dur < 120) console.error("⚠ 2分未満＝短すぎる（提出要件は 2〜4分）");
 else if (dur > 240) console.error("⚠ 4分超過＝**失格になる**。shot を1つ落として撮り直す");
 else console.log("長さは要件内（2〜4分）");
+
+export {};

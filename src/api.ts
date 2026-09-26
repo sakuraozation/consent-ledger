@@ -75,6 +75,7 @@ api.get("/approvals/:requestId", async (c) => {
       scope: r.pending.scope,
       outcome: r.status === "approved" ? "approved" : "declined",
       requester: "the person's own device",
+      requestId: r.pending.requestId,
     });
   }
 

@@ -228,6 +228,8 @@ export type Use = {
   subject: string;
   scope: string;
   decision: Outcome;
+  /** ask の行と、そのあとの結末を紐づける。画面は同じ requestId を1行にまとめる */
+  requestId?: string;
   consentId?: string;
   requester?: string;
   at: number;
@@ -240,6 +242,7 @@ type UseRow = {
   decision: string;
   consent_id: string | null;
   requester: string | null;
+  request_id: string | null;
   at: number;
 };
 
@@ -252,7 +255,9 @@ export async function record(
   u: { subject: string; scope: string; verdict: Verdict; requester?: string },
 ): Promise<void> {
   await db
-    .prepare("INSERT INTO uses (id, subject, scope, decision, consent_id, requester, at) VALUES (?, ?, ?, ?, ?, ?, ?)")
+    .prepare(
+      "INSERT INTO uses (id, subject, scope, decision, consent_id, requester, request_id, at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+    )
     .bind(
       crypto.randomUUID(),
       u.subject,
@@ -260,6 +265,7 @@ export async function record(
       u.verdict.decision,
       u.verdict.consentId ?? null,
       u.requester ?? null,
+      u.verdict.requestId ?? null,
       Date.now(),
     )
     .run();
@@ -268,11 +274,22 @@ export async function record(
 /** 承認の結末を1行足す（判定ではなく出来事なので、reason を持たない）。 */
 export async function recordOutcome(
   db: D1Database,
-  u: { subject: string; scope: string; outcome: Outcome; requester?: string },
+  u: { subject: string; scope: string; outcome: Outcome; requester?: string; requestId?: string },
 ): Promise<void> {
   await db
-    .prepare("INSERT INTO uses (id, subject, scope, decision, consent_id, requester, at) VALUES (?, ?, ?, ?, ?, ?, ?)")
-    .bind(crypto.randomUUID(), u.subject, u.scope, u.outcome, null, u.requester ?? null, Date.now())
+    .prepare(
+      "INSERT INTO uses (id, subject, scope, decision, consent_id, requester, request_id, at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+    )
+    .bind(
+      crypto.randomUUID(),
+      u.subject,
+      u.scope,
+      u.outcome,
+      null,
+      u.requester ?? null,
+      u.requestId ?? null,
+      Date.now(),
+    )
     .run();
 }
 
@@ -288,6 +305,7 @@ export async function usesBySubject(db: D1Database, subject: string, limit = 50)
     decision: r.decision as Outcome,
     consentId: r.consent_id ?? undefined,
     requester: r.requester ?? undefined,
+    requestId: r.request_id ?? undefined,
     at: r.at,
   }));
 }

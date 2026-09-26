@@ -172,30 +172,66 @@ export const Boundary: FC<{ holds: string; stays: string }> = ({ holds, stays })
   </p>
 );
 
+const OUTCOMES = new Set(["approved", "declined", "unanswered"]);
+
+/**
+ * 使用ログ。**ask のあと何が起きたかを同じ行に畳む**——別の行として並べると、
+ * 承認されたあとも ask の行が ask のまま残り、状態が古く見える（09-26 に指摘）。
+ * 行を書き換えるのではなく紐づけて畳むのは、聞かれた事実そのものを残すため。
+ */
 export const UseLog: FC<{ uses: Use[] }> = ({ uses }) => {
   if (uses.length === 0) return <p class="dim">Nobody has asked for this yet.</p>;
-  // 判定の行が「要求」、結末の行はそのあとの出来事。混ぜて数えると二重になる。
-  const outcomes = new Set(["approved", "declined", "unanswered"]);
-  const asks = uses.filter((u) => !outcomes.has(u.decision));
-  const wentThrough = uses.filter((u) => u.decision === "allow" || u.decision === "approved").length;
+
+  // requestId で結末を引けるようにしてから、判定の行だけを並べる
+  const settled = new Map<string, Use>();
+  for (const u of uses) {
+    if (OUTCOMES.has(u.decision) && u.requestId) settled.set(u.requestId, u);
+  }
+  const requests = uses.filter((u) => !OUTCOMES.has(u.decision));
+  // 紐づかない結末（requestId を持たない古い行）は、そのまま1行として残す
+  const orphans = uses.filter((u) => OUTCOMES.has(u.decision) && (!u.requestId || !requests.some((r) => r.requestId === u.requestId)));
+  const rows = [...requests, ...orphans].sort((a, b) => b.at - a.at);
+
+  const wentThrough = rows.filter((u) => {
+    const end = u.requestId ? settled.get(u.requestId) : undefined;
+    return u.decision === "allow" || u.decision === "approved" || end?.decision === "approved";
+  }).length;
+
   return (
     <>
       <p class="meta">
-        {asks.length} request{asks.length === 1 ? "" : "s"} · {wentThrough} went through ·{" "}
-        {asks.length - wentThrough} did not
+        {rows.length} request{rows.length === 1 ? "" : "s"} · {wentThrough} went through ·{" "}
+        {rows.length - wentThrough} did not
       </p>
       <table class="log">
         <tbody>
-          {uses.map((u) => (
-            <tr>
-              <td class="meta">{new Date(u.at).toISOString().slice(11, 19)}Z</td>
-              <td>
-                <span class={u.decision}>{u.decision}</span>
-              </td>
-              <td>{u.scope}</td>
-              <td class="meta dim">{(u.requester ?? "unknown").slice(0, 28)}</td>
-            </tr>
-          ))}
+          {rows.map((u) => {
+            const end = u.requestId ? settled.get(u.requestId) : undefined;
+            return (
+              <tr>
+                <td class="meta">{new Date(u.at).toISOString().slice(11, 19)}Z</td>
+                <td>
+                  <span class={u.decision}>{u.decision}</span>
+                  {end ? (
+                    <>
+                      {" → "}
+                      <span class={end.decision === "approved" ? "allow" : "revoked"}>{end.decision}</span>
+                    </>
+                  ) : null}
+                </td>
+                <td>{u.scope}</td>
+                <td class="meta dim">
+                  {end
+                    ? end.decision === "approved"
+                      ? "they said yes"
+                      : end.decision === "declined"
+                        ? "they said no"
+                        : "nobody answered in time"
+                    : (u.requester ?? "unknown").slice(0, 28)}
+                </td>
+              </tr>
+            );
+          })}
         </tbody>
       </table>
     </>
