@@ -1,6 +1,7 @@
 # Prize requirements (transcribed 2026-09-25, from the event prize page)
 
-Three partner prizes (the maximum): **World ×2** and **ENS**. Each qualification line below
+Three partner prizes (the maximum): **World ×2** and **ENS**. All three are now satisfied —
+the last open item, IDKit's success path, was confirmed on a device on 09-26. Each qualification line below
 is a checkbox to close before submission. Wording is the sponsor's; the notes are mine.
 
 > Slot 3 changed on 09-26: **Curvegrid — Best AI Agent Project ($1,000) → ENS — Best Use of
@@ -43,8 +44,11 @@ needed, and how it improves a real product experience."*
       required level (`insufficient_credential`), proof rejected by World
       (`invalid_format`). In every case **the delegation is untouched**. Cancelling the
       modal withdraws nothing
-- [ ] Confirm the success path on a phone with World App (needs the device — everything
-      else is verified)
+- [x] Success path confirmed on a phone with World App (2026-09-26): the QR opened, a
+      `device`-level proof came back, the server verified it against
+      `POST /api/v2/verify/{app_id}`, the nullifier was recorded in `verifications`, and the
+      scope was actually removed from the delegation. Refusing or closing the modal leaves it
+      untouched, which was verified separately
 - [ ] Include a short integration debrief: time to first success, friction encountered,
       missing capability or documentation, and the one improvement with the greatest
       impact → `FEEDBACK.md`

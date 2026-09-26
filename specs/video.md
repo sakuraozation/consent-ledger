@@ -118,6 +118,10 @@ Approve it on the phone. Show the verdict flip to `allow`.
 
 Run `bun run scripts/ens-role.ts withdraw campaign-print`, then re-run the same request.
 
+*If the take-back is also shown on camera, press it on `lookbook` — the bottom one.
+`campaign-print` is the scope that shows `allow` and `campaign-social` is the one that lapses,
+so taking either of those back breaks a later beat.*
+
 > I just removed one role on chain. Nothing was written in my database. The same request that
 > was allowed a second ago is refused now, and it names the chain as the reason.
 >
