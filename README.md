@@ -1,10 +1,10 @@
 # consent-ledger
 
-**Her agency can finally stop this — and she can take the authority back.**
+**Their agency can finally stop this — and they can take the authority back.**
 
 A consent record for body-scan data, built so an AI pipeline has to ask before it
 generates. The agency does the work, because that is what an agency is for. The person
-holds one thing only: the authority itself, which she can withdraw without asking.
+holds one thing only: the authority itself, which they can withdraw without asking.
 
 Live: **https://consent-ledger.yoshitatsu.workers.dev** · [`/generate`](https://consent-ledger.yoshitatsu.workers.dev/generate) ·
 [`/me`](https://consent-ledger.yoshitatsu.workers.dev/me) · [`/agency`](https://consent-ledger.yoshitatsu.workers.dev/agency)
@@ -14,18 +14,18 @@ Live: **https://consent-ledger.yoshitatsu.workers.dev** · [`/generate`](https:/
 ## The problem, from a person
 
 A model shoots a campaign and is photographed from many angles. That part is normal, paid
-and agreed. Months later the body data turns up in AI-generated ads. She often cannot tell
-when it happens, because the output does not always look like her face.
+and agreed. Months later the body data turns up in AI-generated ads. They often cannot tell
+when it happens, because the output does not always look like their face.
 
-What she wants is not a ban. It is a **scope**, an **expiry**, and the ability to **take it
+What they want is not a ban. It is a **scope**, an **expiry**, and the ability to **take it
 back**.
 
 ## Who this is for, and who it is against
 
-A model cannot police this herself — she cannot even tell when it happens, and she has an
-agency precisely because managing her own commercial use is not her job. **The agency is
+A model cannot police this themselves — they cannot even tell when it happens, and they have an
+agency precisely because managing their own commercial use is not their job. **The agency is
 not the adversary here. The adversary is whoever reuses the scan without asking**, and
-today neither the model nor her agency can do anything about it.
+today neither the model nor their agency can do anything about it.
 
 So the agency is the operator: it says what the body data may be used for, and it stops a
 use the moment it hears about one. The person delegates that, and keeps exactly one power
@@ -71,12 +71,12 @@ human unchanged:
 | `allow` | in scope, unexpired, not revoked, issued under a live delegation | generation proceeds |
 | `deny` | the use was never granted | nobody is asked — there is nothing to ask about |
 | `ask` | no record, or it expired | a human decides; **nothing is generated while waiting** |
-| `revoked` | she took it back | refused, and the reason says so |
+| `revoked` | they took it back | refused, and the reason says so |
 
 The order of those checks is the argument. A withdrawn delegation outranks everything —
 nothing issued under it survives. Within a scope, revocation outranks expiry. And an
 expired consent falls through to `ask` rather than `deny`, because expiry means nobody has
-asked her lately, not that she changed her mind.
+asked their lately, not that they changed their mind.
 
 ## The same permission model runs on ENSv2, on chain
 
@@ -91,9 +91,9 @@ there as well as in our own layer. It is registered and working on Sepolia:
 `authorizeTextRoles(name, key, account, grant)` is the delegation, and it is scoped **per
 text key**. That turned out to be the feature the product needed, because the scopes divide
 along a real line: the shoot's images are the agency's business and always have been, while
-anything *generated* from her body data is hers and has never belonged to anyone.
+anything *generated* from their body data is theirs and has never belonged to anyone.
 `consent.campaign-print` is a role they hold; `consent.ai-generation` is one they do not. The person sits at
-the centre of her own name and hands out some of the roles under it. Nothing extra had to be
+the centre of their own name and hands out some of the roles under it. Nothing extra had to be
 written for that.
 
 | Here | On chain |
@@ -120,8 +120,8 @@ a second, without anything being written here. The person's page shows the same 
 The split is deliberate: the chain holds *who may speak for whom*, which must not depend on
 our server being honest or alive, and our layer holds *what each request gets back*, because
 a generation request needs an answer in one round trip and a human approval has to reach a
-phone. She is never asked to hold a wallet — the role is administered for her and shown to
-her as a state.
+phone. They are never asked to hold a wallet — the role is administered for them and shown to
+their as a state.
 
 **When the chain cannot be read, we do not assume permission.** The verdict becomes `ask`
 and says so. Falling back to `allow` would reintroduce exactly the failure this project
@@ -145,18 +145,18 @@ exists to stop, so the RPC being down costs a human approval, not a silent yes.
 | **Tests for the parts that must not fail open** | [`test/`](test/) — `bun test`, 17 cases, no keys or network needed; the reasoning is in [`test/README.md`](test/README.md) |
 | Integration debrief | [`FEEDBACK.md`](FEEDBACK.md) |
 
-### The one action nobody may do on her behalf
+### The one action nobody may do on their behalf
 
 Everything else here is the agency's job, and that is deliberate. One thing is not: **taking
-a scope back**, for the narrow case where they acted outside what she gave them. If anyone
+a scope back**, for the narrow case where they acted outside what they gave them. If anyone
 could press it, the backstop would not be a backstop — so it leads to a confirmation that
 requires Proof of Human, verified on our server before anything is written.
 
 It is per scope, not all-or-nothing, and that is the whole argument in miniature. The
-adversary is the third party reusing her scan, and ending her agency's authority does nothing
+adversary is the third party reusing their scan, and ending their agency's authority does nothing
 to them — it only closes the legitimate channel. What *is* worth doing is narrower: take back
-the one scope they overstepped. The scope then becomes hers, so the next request for it comes
-to her instead of being refused, and consents they issued in it stop applying. Everything
+the one scope they overstepped. The scope then becomes theirs, so the next request for it comes
+to them instead of being refused, and consents they issued in it stop applying. Everything
 else they handle is untouched.
 
 The refusals matter more than the success. No proof, a credential below the required level,
@@ -165,8 +165,8 @@ withdraws nothing. Refusing to verify is not a way to withdraw, and verifying is
 something the client can claim — the browser's success is only a proof to hand to the
 server.
 
-Removing the matching role on ENS is a signature only she can make. This service stops
-honouring the scope the moment she confirms; nothing here can touch the on-chain role for her,
+Removing the matching role on ENS is a signature only they can make. This service stops
+honouring the scope the moment they confirm; nothing here can touch the on-chain role for them,
 which is why it is on chain.
 
 There is no login anywhere else. The agency dashboard and the generating side are open in
@@ -179,7 +179,7 @@ the whole argument had to be real.
 Two different questions get confused here, so let me separate them.
 
 **Who holds the right** is not something a credential answers. A licence over someone's
-likeness belongs to an identified person, and if a brand has to prove later that *she*
+likeness belongs to an identified person, and if a brand has to prove later that *they*
 licensed it, "a unique human said yes" is not evidence. That link is established once, by
 people: the contract, and who owns the name. Adding a passport check would not change it —
 a passport proves a legal identity, not that this person is the rights holder, and in this
@@ -197,16 +197,16 @@ token too, so the freshness of an approval is available if a scope ever needs it
 So the credential is proportionate to its own question, and deliberately silent on the other
 one. Claiming otherwise would be the easy version of this answer and the wrong one.
 
-The sharpest case is a scope she never delegated. There is no authority that could answer it
-— the agency was never given one — so the request goes to her, she approves on her phone, and
+The sharpest case is a scope they never delegated. There is no authority that could answer it
+— the agency was never given one — so the request goes to them, they approve on their phone, and
 the verdict comes back `allow` with the reason *"The person answered for ai-generation
-themselves"*. That consent is recorded under her approval rather than under the agency's
+themselves"*. That consent is recorded under their approval rather than under the agency's
 delegation, so removing the agency's on-chain role does not touch it. It was never theirs.
 
 ### No photographs, on purpose
 
 There are no faces anywhere in this, and that is a decision rather than a shortcut. The whole
-premise is that images of a person were used without her agreeing to it. Putting a stock face
+premise is that images of a person were used without them agreeing to it. Putting a stock face
 or a generated one on these screens would be doing the same thing to make the demo look
 better — and no image or scan data is stored here in the first place. The roster shows
 initials.
@@ -217,11 +217,11 @@ Worth saying plainly, because the gaps are structural rather than unfinished wor
 
 - **A likeness licence is identity-bound, and World ID is identity-free by design.** The link
   between the identifier on these records and the named person is asserted once by the people
-  who know her. We do not verify it, and nothing here can.
+  who know them. We do not verify it, and nothing here can.
 - **Continuity is not the continuity of the right.** The same human keeps the same `sub` after
   assigning their likeness rights away — which happens at scale, as Khaby Lame's January 2026
-  deal shows. Our records would still route the question to her.
-- **Availability.** A model's working life is travel. A path that needs her present, on her
+  deal shows. Our records would still route the question to them.
+- **Availability.** A model's working life is travel. A path that needs their present, on them
   phone, within two minutes will sometimes fail — and the fallback would be the agency, which
   is the party this path exists to route around.
 - **A tap can be pressured.** Proof of Human makes an approval verifiable, not voluntary. In
@@ -232,7 +232,7 @@ Worth saying plainly, because the gaps are structural rather than unfinished wor
 - **Payment is not connected, and the wiring has been removed.** x402 worked here — one
   middleware, a 402, a facilitator — and I took it out before submitting. Two reasons. The
   payee cannot vary per request, so I could not send the money where the argument says it
-  should go: to her, for a use nobody was ever given. And paying her directly means giving her
+  should go: to them, for a use nobody was ever given. And paying them directly means giving them
   a key, which contradicts a decision this design makes on purpose. Leaving a live 402 on an
   unrelated route while the README says payment is not connected would mean something is
   running that nothing here claims. The measurements are in [`FEEDBACK.md`](FEEDBACK.md); this
@@ -278,7 +278,7 @@ is a **silent yes**, so almost every invariant worth holding takes the form *"do
 `allow` here"* — a scope the person kept, a scope taken back, a delegation that is gone, an
 on-chain role that was removed, and **a chain we cannot read at all**. Two of them are
 regressions from bugs that shipped: a revocation that leaked across scopes, and a taken-back
-scope whose old consent kept passing while claiming she had answered it herself.
+scope whose old consent kept passing while claiming they had answered it themselves.
 
 The database in the tests is real SQLite with the real migrations applied, not a stub, so a
 schema that drifts from the code fails here rather than in production. What the tests do *not*

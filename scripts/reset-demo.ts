@@ -34,8 +34,9 @@ const PEOPLE = [
     ],
   },
   {
-    // 生成 AI の分も事務所に任せている（実在する形。Khaby Lame の取引がその規模の例）
-    label: "Mei",
+    // 生成 AI の分も事務所に任せている（実在する形。Khaby Lame の取引がその規模の例）。
+    // 名簿に男性を1人置く＝対象は女性だけではないことを画面で示す
+    label: "Sho",
     subject: "9TMRJ4VC8ZPQKD2NLXAS7HYE3BWFU6GO",
     delegated: ["campaign-print", "campaign-social", "lookbook", "ai-generation"],
     engagements: [{ scope: "ai-generation", expiresAt: Date.now() + 90 * 86_400_000 }],

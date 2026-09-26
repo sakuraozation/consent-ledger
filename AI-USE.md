@@ -41,8 +41,8 @@ decisions were mine, per the event's attribution rule.
   back to asking a human rather than allowing
 - that the person is never asked to hold a wallet
 - that the scopes divide by kind of use, not by media type — the shoot's outputs are the
-  agency's and always have been; anything generated from her body data is hers
+  agency's and always have been; anything generated from their body data is theirs
 - that per-scope withdrawal replaces taking back all authority, because the adversary is the
   third party and ending the agency's authority does nothing to them
-- not connecting x402: the payee cannot vary per request, and paying her directly collides
-  with the decision that she holds no key
+- not connecting x402: the payee cannot vary per request, and paying them directly collides
+  with the decision that they hold no key

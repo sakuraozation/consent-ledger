@@ -38,9 +38,9 @@ export const SCOPE_NOTE: Record<string, string> = {
   "campaign-print": "the shoot's images, in print and out-of-home",
   "campaign-social": "the shoot's images, on the brand's channels",
   lookbook: "the shoot's images, in trade and wholesale material",
-  "ai-generation": "new images generated from her body data — not from the shoot",
-  "ai-training": "her body data used to train a model",
-  "digital-double": "a persistent likeness that can be posed and reused without her",
+  "ai-generation": "new images generated from their body data — not from the shoot",
+  "ai-training": "their body data used to train a model",
+  "digital-double": "a persistent likeness that can be posed and reused without them",
 };
 
 /** 期間。契約の期間は月単位で、90秒は満了を画面で見せるためのデモ用。 */

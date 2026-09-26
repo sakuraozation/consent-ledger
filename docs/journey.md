@@ -9,37 +9,37 @@ thing that ends permission.
 
 ## 1. The scan already happened
 
-A model shoots a campaign. As part of it, she is photographed from many angles — this is
-normal, paid, and agreed. Months later a friend sends her an ad. It is not her face exactly,
-but it is her body, her posture, her proportions. Nobody asked.
+A model shoots a campaign. As part of it, they are photographed from many angles — this is
+normal, paid, and agreed. Months later a friend sends their an ad. It is not their face exactly,
+but it is their body, their posture, their proportions. Nobody asked.
 
-She calls her agency — the people whose job is exactly this. **They cannot do anything
+They call their agency — the people whose job is exactly this. **They cannot do anything
 either.** Nobody can see it, so nobody can stop it. That is the state before anything we
 build.
 
 ## 1b. Two different things got bundled together
 
-What she agreed to was a shoot, and the shoot's images being published — print, social, a
+What they agreed to was a shoot, and the shoot's images being published — print, social, a
 lookbook. That is what an agency has always handled, and an enquiry about any of it goes to
 them, correctly.
 
-What happened to her scan is not that. Nothing was published; something was *generated*. It
+What happened to their scan is not that. Nothing was published; something was *generated*. It
 was not part of the deliverables, it was not priced, and in most contracts of this kind it is
 not mentioned at all. It is a use that arrived after the desk was built.
 
-So the two belong to different people. The shoot's outputs stay with her agency. Anything
-generated from her body data stays hers until she says otherwise — including who to ask, and
+So the two belong to different people. The shoot's outputs stay with their agency. Anything
+generated from their body data stays theirs until they say otherwise — including who to ask, and
 who gets paid.
 
 ## 2. The agency puts the terms they already agreed onto the record
 
-They are already her representatives: they take the calls, arrange the castings, negotiate
+They are already their representatives: they take the calls, arrange the castings, negotiate
 across markets. None of that changes, and none of it is what we build. What we take is the
 one part a contract can hold.
 
-First the authority to act is recorded. This is not a new decision she makes — it is the
-representation agreement she already signed, made explicit enough for a machine to honour.
-On ENSv2 it is a role on her name, scoped to the single record that holds her consent: the
+First the authority to act is recorded. This is not a new decision they make — it is the
+representation agreement they already signed, made explicit enough for a machine to honour.
+On ENSv2 it is a role on their name, scoped to the single record that holds their consent: the
 agency can write that record and nothing else on the name.
 
 Then the terms. The agency knows them — which medium, which market, **until when**. Until
@@ -66,43 +66,43 @@ Four things can come back, each with a reason written to be shown to a human unc
 
 - **allow** — in scope, inside the term
 - **deny** — the agency handles this scope and has not agreed to it. The brand's route is a
-  phone call to them, not a question to her
-- **ask** — only she can answer: either the term she agreed has run out, or **this is a scope
-  she never delegated**. A lapsed term does not mean she said no; it means nobody renewed it.
-  A scope she kept means nobody was ever allowed to answer for her
+  phone call to them, not a question to them
+- **ask** — only they can answer: either the term they agreed has run out, or **this is a scope
+  they never delegated**. A lapsed term does not mean they said no; it means nobody renewed it.
+  A scope they kept means nobody was ever allowed to answer for them
 - **revoked** — the permission was ended
 
 > *Screen: the requesting side — one button, and the verdict with its reason.*
 
-## 4. When the answer is `ask`, she decides herself
+## 4. When the answer is `ask`, they decide themselves
 
 This is the half the chain cannot do. ENS holds who may speak for whom; it cannot ask a
-person a question right now. And for a scope she kept there is nobody else to ask — the
+person a question right now. And for a scope they kept there is nobody else to ask — the
 agency was never given it.
 
 
 
-The pipeline stops and asks. It shows a short code. She approves on her phone — a separate
+The pipeline stops and asks. It shows a short code. They approve on their phone — a separate
 device, a separate session, nothing to install for the pipeline.
 
 The proof is verified **on our server** against the issuer's keys. Until that passes, nothing
 is approved. The subject comes back the same as last time, which is how we know it is the same
-person and not someone borrowing her account.
+person and not someone borrowing their account.
 
-It does not establish that she is the rights holder, and it is not asked to. That was settled
-in her contract, by people, before any of this. What the credential answers is narrower and
+It does not establish that they are the rights holder, and it is not asked to. That was settled
+in their contract, by people, before any of this. What the credential answers is narrower and
 unavailable anywhere else: *a real human, the same one, right now.*
 
-**While it waits, the generation does not happen.** If she does not answer within the
+**While it waits, the generation does not happen.** If they do not answer within the
 deadline, the request expires and the generation still does not happen. That is a decision,
 not an oversight: an agent that proceeds on silence is not asking.
 
 > *Screen: the waiting state — the code, the countdown, and what happens if nobody answers.*
 
-Three people can see that it is waiting, and only one of them can end it. Her own page shows
-it with a link that opens the approval directly — no code to type. Her agency sees it too, on
-her page in their roster, because a brand waiting on their talent is their problem to chase.
-**What they do not get is a button.** They can ring her; they cannot answer for her. That is
+Three people can see that it is waiting, and only one of them can end it. Their own page shows
+it with a link that opens the approval directly — no code to type. Their agency sees it too, on
+their page in their roster, because a brand waiting on their talent is their problem to chase.
+**What they do not get is a button.** They can ring them; they cannot answer for them. That is
 the same line as everywhere else, drawn at the moment it would be most tempting to cross.
 
 ## 5. Permission ends — and the ordinary way is that it runs out
@@ -115,42 +115,41 @@ event that needs a person, not termination.
 > *Screen: a live engagement and a lapsed one side by side, and the same request answered
 > differently.*
 
-When a deal genuinely ends early, that is the agency's to do — they are the party to it. She
-tells them, they press **Stop this use**, and seconds later the same request from the same
-pipeline comes back **refused, with the reason**. Her route to this is a phone call, which is
-what representation is; putting the button in front of her instead would be pretending the
+When a deal genuinely ends early, that is the agency's to do — they are the party to it. They tell them, they press **Stop this use**, and seconds later the same request from the same
+pipeline comes back **refused, with the reason**. Their route to this is a phone call, which is
+what representation is; putting the button in front of them instead would be pretending the
 relationship works differently than it does.
 
 > *Screen: the agency ends one use, then the same request refused.*
 
-## 6. The exception: her agency went outside what she gave them
+## 6. The exception: their agency went outside what they gave them
 
-Not a deal she dislikes — that is a phone call. This is the narrow case where they acted
+Not a deal they dislike — that is a phone call. This is the narrow case where they acted
 outside the scope itself. **Stop letting them handle `<scope>`** takes that one scope back and
 leaves the rest alone. It requires proof that a real human, the same human as before, is
 doing it: proportionate precisely because it changes what was agreed rather than following it.
 Refusing to verify changes nothing; closing the window changes nothing.
 
-What happens next is the part worth watching. The scope does not switch off — it becomes hers,
-so the next request for it **comes to her** rather than being refused. Consents the agency
+What happens next is the part worth watching. The scope does not switch off — it becomes theirs,
+so the next request for it **comes to them** rather than being refused. Consents the agency
 issued in that scope stop applying, because the authority they rested on is gone. Everything
 else they handle is untouched.
 
 > *Screen: Stop letting them handle ad-image — confirmed with Proof of Human — then the same
-> request answered by her instead of by the record.*
+> request answered by them instead of by the record.*
 
 An earlier version of this step offered *take back all authority*, and it was the wrong lever
-for the stated reason: the adversary is the third party reusing her scan, and ending her
+for the stated reason: the adversary is the third party reusing their scan, and ending them
 agency's authority does nothing to them — it only closes the legitimate channel. The screen
 listed leaks and impersonation as the reasons to press it, which are the cases it cannot fix.
 
-Removing the matching role on ENS is a signature only she can make. This service stops
-honouring the scope the moment she confirms, and nothing here can remove the on-chain role for
-her. That gap is why the role is on chain at all.
+Removing the matching role on ENS is a signature only they can make. This service stops
+honouring the scope the moment they confirm, and nothing here can remove the on-chain role for
+them. That gap is why the role is on chain at all.
 
-### If she just disagrees with the terms
+### If they just disagrees with the terms
 
-That is not an override, and it is not something a product should settle. Her page carries
+That is not an override, and it is not something a product should settle. Their page carries
 **Ask to change this** to a person and stops there. Negotiation is the half we deliberately
 left with the humans, and building messaging and counter-offers here would be a second
 product.
@@ -185,8 +184,8 @@ log makes every verdict visible after the fact.
 - **The agency**: the terms they already negotiated, in a form that can answer a machine at
   the speed generation happens — without giving up any of the work that makes them an
   agency.
-- **The person**: sight of what she is tied to and until when, a way to raise it with a
-  person, and one exceptional action that is genuinely hers.
+- **The person**: sight of what they are tied to and until when, a way to raise it with a
+  person, and one exceptional action that is genuinely theirs.
 - **The generating side**: a yes or no before they spend, with a reason they can act on.
 
 What made this hard was never consent. It was that writing precise terms — duration, scope,

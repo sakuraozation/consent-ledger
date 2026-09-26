@@ -27,8 +27,8 @@ time you are filming. The lapse itself is created on camera at 1:35.
 voice does not have to read out:*
 
 ```
-An advertisement using her body.
-Not her face. Her body.
+An advertisement built from a model's body.
+Not the face. The body.
 Nobody asked.
 ```
 
@@ -36,11 +36,11 @@ Nobody asked.
 judge who is reading cannot listen, and the written argument is the README's job. One card is
 enough to stop the opening from being a blank screen.*
 
-> A model I know found an advertisement using her body. Not her face — her body, her posture,
-> her proportions. It came from a scan taken during a normal, paid shoot. Nobody asked her
+> A model I know found an advertisement using their body. Not their face — their body, their posture,
+> their proportions. It came from a scan taken during a normal, paid shoot. Nobody asked them
 > about the ad.
 >
-> She called her agency, because that is what an agency is for. They could not do anything
+> They called their agency, because that is what an agency is for. They could not do anything
 > either. Not because they did not care — because nobody could see where the data had gone,
 > and there was nothing to point at.
 
@@ -50,7 +50,7 @@ Pause.
 > What it addresses is the thing that made everyone powerless: **there was no record anyone
 > could ask.**
 
-*Note to self: do not name her, do not name the client, do not show any image. The story is
+*Note to self: do not name them, do not name the client, do not show any image. The story is
 told in general terms on purpose.*
 
 ## 0:35–1:05 · Why now, and who this is for
@@ -64,7 +64,7 @@ told in general terms on purpose.*
 > politely — asked by brands who need to prove what they licensed, and eventually by
 > regulators.
 >
-> So this is not a tool that protects a model from her agency. **It is built for the agency**,
+> So this is not a tool that protects a model from their agency. **It is built for the agency**,
 > because they are the ones who will have to answer the question.
 
 ## 1:05–1:35 · The line the product is drawn along (screen: /agency roster)
@@ -78,15 +78,15 @@ Show the roster. Three people, different delegations.
 > agency has handled those for decades, and any enquiry about them goes to them. That is the
 > job.
 >
-> What is generated from her body data is a different thing. It was not part of the shoot's
+> What is generated from their body data is a different thing. It was not part of the shoot's
 > deliverables, it was not priced in the booking, and in most contracts it is not mentioned at
-> all. So that one stays with her.
+> all. So that one stays with them.
 
 Point at Aoi's row: shoot scopes delegated, generative scopes withheld.
 
 ## 1:35–2:05 · The agency's side works the way they already work (screen: /agency/Aoi)
 
-> On her page, the term is the first thing you see, because the term is what does the work.
+> On their page, the term is the first thing you see, because the term is what does the work.
 > Most of these end by running out. Nobody presses anything.
 
 **Do not rely on the seeded 90-second engagement for this beat** — it starts counting the moment
@@ -116,24 +116,24 @@ Pick Aoi + `lookbook` → `deny`.
 
 Pick Aoi + `ai-generation` → `ask`. Press **Ask the human**, show the code.
 
-> Generating from her body data: nobody was ever given this, so there is no desk. The request
-> goes to her.
+> Generating from their body data: nobody was ever given this, so there is no desk. The request
+> goes to them.
 
-Before approving, switch to her screen — the request is there with a countdown — and then to
+Before approving, switch to their screen — the request is there with a countdown — and then to
 the agency's roster, where it says *1 waiting on them*.
 
-> Three people can see it is waiting. Only she can end it. Her agency can see it and ring her
+> Three people can see it is waiting. Only they can end it. Their agency can see it and ring them
 > — they do not get a button.
 
 Approve it on the phone. Show the verdict flip to `allow`.
 
-> She answered. The reason says she answered it herself — not her agency — and that consent is
-> recorded under her, not under their delegation.
+> They answered. The reason says they answered it themselves — not their agency — and that consent is
+> recorded under them, not under their delegation.
 
 ## 2:40–3:10 · Why this belongs on ENSv2 (screen: /me, then the script output)
 
-> Who may speak for whom is on ENSv2, on Sepolia. Each scope is a separate role on her own
-> name, so `campaign-print` is a role her agency holds and `ai-generation` is one they do not.
+> Who may speak for whom is on ENSv2, on Sepolia. Each scope is a separate role on their own
+> name, so `campaign-print` is a role their agency holds and `ai-generation` is one they do not.
 > That is Enhanced Access Control doing exactly what the product needed — I did not write a
 > contract for it.
 
@@ -147,26 +147,26 @@ so taking either of those back breaks a later beat.*
 > was allowed a second ago is refused now, and it names the chain as the reason.
 >
 > That is the part that must not depend on me. If this service is wrong, or gone, the limit
-> still holds — and taking a role back is a signature only she can make.
+> still holds — and taking a role back is a signature only they can make.
 
 Close on the four outcomes.
 
 > Three parties, and each one gets something. The agency can answer a brand at machine speed
-> without giving up any of the work that makes them an agency. The model can see what she is
+> without giving up any of the work that makes them an agency. The model can see what they are
 > tied to and keeps what nobody has ever held. And the generating side gets a yes or no before
 > it spends, with a reason it can act on.
 >
 > One thing I want to be straight about, because it is the most interesting limit. World ID
 > tells me a real human answered, and that it is the same human as last time. **It does not
-> tell me she is the rights holder** — and a likeness licence belongs to an identified person.
-> That link comes from her contract, established once by people. A passport check would not
+> tell me they are the rights holder** — and a likeness licence belongs to an identified person.
+> That link comes from their contract, established once by people. A passport check would not
 > fix it either, because a passport proves an identity, not who owns the right. So I used the
 > credential that is proportionate to the question I actually ask, and left the other question
 > where it already lives.
 >
 > Two smaller ones: the name is not resolvable through the universal resolver on this
 > deployment — it returns the zero address, so I read the registry directly. And I did not
-> connect payment. Paying her directly would mean giving her a key, and I decided she should
+> connect payment. Paying them directly would mean giving them a key, and I decided they should
 > not need one. That is the next question, not a missing feature.
 
 ---
@@ -193,7 +193,7 @@ Close on the four outcomes.
 - **Do not show**: `.dev.vars`, the terminal scrollback with keys, any real client name, any
   image of a person.
 - If a judge asks why the screens have no photographs, the answer is one line: *the premise is
-  that her images were used without her agreeing; putting a stock face here to make the demo
+  that their images were used without them agreeing; putting a stock face here to make the demo
   prettier would be the same act, and nothing stores images anyway.*
 - Two takes maximum per section; stitch rather than restart.
 - If the World approval is slow on camera, keep talking — the waiting state is part of the

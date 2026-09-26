@@ -343,7 +343,7 @@ screens.get("/me", async (c) => {
   return c.html(
     <Page title={`${label} — what you are tied to`} here="me" who={label} refresh={waiting.length > 0 ? 5 : undefined}>
       <p class="meta dim">
-        Signed in as <strong>{label}</strong> · {subject.slice(0, 10)}… · her own page, on her phone
+        Signed in as <strong>{label}</strong> · {subject.slice(0, 10)}… · your own page, on your phone
       </p>
       <h1>{label}, here is what you are tied to</h1>
       <Boundary

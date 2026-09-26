@@ -4,7 +4,7 @@
 
 > The framing is wrong and it shows in the screens. "The person revokes without the
 > agency" reads as if the agency were the threat. It isn't: a model has an agency because
-> selling herself is not her job, and she is not going to audit AI pipelines either. The
+> selling themselves is not their job, and they are not going to audit AI pipelines either. The
 > adversary is whoever reuses the scan without asking, and right now **neither of them can
 > do anything**.
 >

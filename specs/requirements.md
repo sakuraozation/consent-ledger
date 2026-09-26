@@ -36,8 +36,8 @@ needed, and how it improves a real product experience."*
       success is never treated as authorization, and the nullifier is recorded in D1
 - [x] **Clearly explain the specific product event requiring trust, and why the chosen
       credential is the minimum sufficient assurance** — on the confirmation screen itself
-      and in the README: taking a scope back is the one action nobody may do on her behalf,
-      so what must be true is *a real human, the same one* — not who she is
+      and in the README: taking a scope back is the one action nobody may do on their behalf,
+      so what must be true is *a real human, the same one* — not who they are
 - [x] Demonstrate a successful verification **and one meaningful alternative path**
       (cancellation, unavailable credential, rejection, or an ineligible user) — three
       refusals verified in production: no proof (`proof_required`), credential below the
@@ -82,10 +82,10 @@ Proofs are mocked in the dev environment — no sandbox World App setup required
 - [x] Demonstrate the complete journey: verification request → user completion →
       validated result → **the protected action** — verified in production 2026-09-25, and
       again on 09-26 for the case that matters most: a scope the person **never delegated**,
-      where the agency cannot answer and only she can. Code `94USP-7THAM` → approved →
+      where the agency cannot answer and only they can. Code `94USP-7THAM` → approved →
       `allow`, with the reason *"The person answered for nsfw themselves"*
 - [x] The pairwise subject is stable: three separate approvals returned the identical `sub`
-      (`YEPO2FZK…`), so the ledger can tell it is the same human without learning who she is.
+      (`YEPO2FZK…`), so the ledger can tell it is the same human without learning who they are.
       That is the credential argument, measured rather than asserted
 - [x] Demonstrate a **denied, expired, cancelled or otherwise unsuccessful path where
       the protected action does not occur** — declined (no code), unknown state, and

@@ -280,7 +280,7 @@ export const ScopeGrid: FC<{
             {firstNew ? (
               <tr>
                 <td colspan={3} class="meta dim" style="padding-top:.75rem">
-                  — anything generated from her body data, which is not part of a shoot —
+                  — anything generated from their body data, which is not part of a shoot —
                 </td>
               </tr>
             ) : null}
