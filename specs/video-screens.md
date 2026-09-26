@@ -6,6 +6,52 @@ file is only the screen half: **what I click, in what order, and what I say over
 Runtime of this half: **about 2:10**, plus the optional beat. Lines in `>` are spoken. Everything
 else is an action.
 
+## Recording tool, and why one take
+
+**macOS built-in: `cmd+shift+5` → Options → Microphone → your mic → Record Selected Portion.**
+No install, and it captures the mic alongside the screen. OBS is more control than this needs.
+
+**Record the screen half in one take, narrating live.** It is less work than recording audio
+separately, and the reason is not laziness: the voice has to land on the click. If the audio is
+recorded apart, every screen action has to be nudged into place, and any correction risks a
+drift that a judge can see. Stumbling is fine — the rules penalise **speed-ups**, not pauses.
+If a shot goes badly, re-record that shot; the cuts are at tab switches so they stitch invisibly.
+
+**Do not trim silences**, even though tools offer it. On a screen demo it desynchronises the
+voice from the clicks, and pacing edits are the thing the rules are suspicious of. A pause while
+the approval lands is evidence that it is real.
+
+### Assembling the two pieces
+
+The opening is already recorded, so there are exactly two files to join. `ffmpeg` is installed:
+
+```bash
+bun run scripts/video-assemble.ts <opening-audio> <screen-recording> submission.mp4
+```
+
+It builds the opening from `assets/opening-card.png` plus your voice, normalises the screen take
+to the same format, concatenates, and then **checks the two things that disqualify**: the height
+must be at least 720, and the total must land between 2:00 and 4:00. It re-encodes but never
+changes speed or pitch.
+
+To make the card image: open [`assets/opening-card.html`](../assets/opening-card.html) in the
+browser, go full screen, and capture it with `cmd+shift+4` into `assets/opening-card.png`.
+
+iMovie does the same job by hand if you would rather see it: card image stretched over the
+opening audio, then the screen take after it. Either way, export at 1080p.
+
+### What AI can do here, and what it must not
+
+- **Captions: yes.** Auto-captions from CapCut or YouTube help a non-native narration land, and
+  the rules only forbid *music-with-captions replacing a voice* — captions over your own voice
+  are fine. Read them through; auto-captions mangle `ai-generation` and `ENSv2`.
+- **Mild audio cleanup: fine.** Adobe Podcast Enhance or Descript's Studio Sound removes room
+  noise without changing the voice. Keep it light — heavy processing starts to sound synthetic,
+  which invites exactly the question you do not want.
+- **Synthesized speech, voice cloning, "read my script for me": disqualifies the entry.** Not a
+  judgement call, it is in the rules.
+- **Filler-word and silence removal: do not.** See above.
+
 ## Before you hit record
 
 ```bash

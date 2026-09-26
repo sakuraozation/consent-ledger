@@ -1,0 +1,28 @@
+<!doctype html>
+<meta charset="utf-8" />
+<title>Opening card</title>
+<!--
+  動画の冒頭に映す静止カード。読み上げない3行。
+  使い方: このファイルをブラウザで開き、全画面にして cmd+shift+4 で撮る
+  （保存先は assets/opening-card.png）。1280×720 以上で切り取る。
+-->
+<style>
+  :root { color-scheme: dark }
+  html, body { margin: 0; height: 100%; background: #0b0b0d; }
+  body { display: grid; place-items: center; }
+  p {
+    margin: 0;
+    color: #f4f4f5;
+    font: 500 clamp(2rem, 5.2vw, 4.4rem) / 1.35 ui-sans-serif, system-ui, -apple-system, sans-serif;
+    letter-spacing: -0.015em;
+    text-align: left;
+  }
+  span { display: block; }
+  span + span { margin-top: 0.15em; }
+  .dim { color: #8b8b91; }
+</style>
+<p>
+  <span>A handheld 3D scanner.</span>
+  <span>Not in the agreement.</span>
+  <span class="dim">Nobody could do anything.</span>
+</p>
