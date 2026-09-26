@@ -16,7 +16,7 @@ body { margin:0; background:var(--bg); color:var(--fg);
 main { max-width:44rem; margin:0 auto; padding:2.5rem 1.25rem 4rem }
 h1 { font-size:1.5rem; margin:0 0 .25rem } h2 { font-size:1.05rem; margin:2rem 0 .5rem }
 .sub { color:var(--muted); margin:0 0 2rem }
-nav { display:flex; gap:1rem; border-bottom:1px solid var(--line); padding-bottom:.75rem; margin-bottom:2rem; font-size:.9rem }
+nav { display:flex; gap:1rem; flex-wrap:wrap; align-items:baseline; border-bottom:1px solid var(--line); padding-bottom:.75rem; margin-bottom:2rem; font-size:.9rem }
 nav a { color:var(--muted); text-decoration:none } nav a[aria-current] { color:var(--fg); font-weight:600 }
 .card { border:1px solid var(--line); background:var(--card); border-radius:10px; padding:1rem 1.15rem; margin:0 0 .75rem }
 .row { display:flex; justify-content:space-between; align-items:baseline; gap:1rem; flex-wrap:wrap }
@@ -67,19 +67,18 @@ export const Page: FC<
     <body>
       <main>
         <nav>
-          {/* 3人の別々の画面を切り替えていることが一目で分かる書き方にする
-              （前は設定タブに見えた・09-26） */}
-          <span class="dim">Three views:</span>
+          {/* 3人の別々の画面だと一目で分かるように、それぞれ「誰の画面」と書く
+              （"Three views" では設定タブに見えた・09-26） */}
+          <span class="dim">Three people, three screens:</span>
           <a href="/agency" aria-current={here === "agency" ? "page" : undefined}>
-            Agency
+            The agency's screen
           </a>
           <a href="/me" aria-current={here === "me" ? "page" : undefined}>
-            {who ?? "Model"}
+            {who ? `${who}'s screen` : "The model's screen"}
           </a>
           <a href="/generate" aria-current={here === "generate" ? "page" : undefined}>
-            Brand's pipeline
+            The brand's screen
           </a>
-          {here === "generate" && who ? <span class="dim">· asking about {who}</span> : null}
         </nav>
         {children}
       </main>
@@ -271,7 +270,7 @@ export const ScopeGrid: FC<{
           <>
             {firstNew ? (
               <tr>
-                <td colspan={4} class="meta dim" style="padding-top:.75rem">
+                <td colspan={3} class="meta dim" style="padding-top:.75rem">
                   — anything generated from her body data, which is not part of a shoot —
                 </td>
               </tr>
@@ -284,15 +283,7 @@ export const ScopeGrid: FC<{
             <td>
               <span class={`pill ${yes ? "allow" : "deny"}`}>{yes ? "delegated" : "withheld"}</span>
             </td>
-            <td class="meta">
-              {yes
-                ? audience === "agency"
-                  ? "you may put engagements on the record for this"
-                  : "your agency handles this for you"
-                : audience === "agency"
-                  ? "not yours to act on — the person kept this"
-                  : "you kept this; nobody can agree to it on your behalf"}
-            </td>
+
             <td class="meta dim">
               {chainOk === false ? "chain unreadable" : chain === undefined ? "" : chain ? "role on chain" : "no role"}
             </td>
@@ -301,5 +292,10 @@ export const ScopeGrid: FC<{
         );
       })}
     </table>
+    <div class="meta dim">
+      {audience === "agency"
+        ? "delegated = yours to put engagements on the record for · withheld = the person kept it, and a request for it goes to them"
+        : "delegated = your agency handles it · withheld = you kept it, and nobody can agree to it on your behalf"}
+    </div>
   </div>
 );

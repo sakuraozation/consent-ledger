@@ -126,11 +126,7 @@ screens.get("/agency", async (c) => {
       ) : null}
 
       <h2>Who you represent</h2>
-      <p class="sub">
-        Not everyone hands over the same things. What each person delegated is the first thing on their row,
-        because it decides what you can do at all. The names are yours; the ledger only knows the identifier
-        beside them.
-      </p>
+      <p class="sub">The names are yours; the ledger only knows the identifier beside them.</p>
       {people.length === 0 ? (
         <p class="dim">Nobody has put you on record yet.</p>
       ) : (
@@ -163,15 +159,8 @@ screens.get("/agency", async (c) => {
 
       <h2>Where the authority is held</h2>
       <p class="sub">
-        Each scope is a separate role on the person's own ENS name — so what they kept cannot be widened from
-        here, by us or by you. One name was registered for this build
-        {chainSubject ? (
-          <>
-            {" "}
-            (<strong>{chainSubject}</strong>); the rest are recorded in this service only
-          </>
-        ) : null}
-        .
+        One name is registered for this build{chainSubject ? <> (<strong>{chainSubject}</strong>)</> : null}; the
+        rest are recorded in this service only.
       </p>
       <ScopeGrid
         all={SCOPES}
@@ -242,10 +231,6 @@ screens.get("/agency/:subject", async (c) => {
         notes={SCOPE_NOTE}
         conventional={AGENCY_SIDE}
       />
-      <p class="meta dim">
-        A scope they kept is not yours to act on. A request for it goes to them directly, and only they can
-        answer it.
-      </p>
 
       {delegation && delegation.scopes.length > 0 ? (
         <>
@@ -264,10 +249,6 @@ screens.get("/agency/:subject", async (c) => {
             </select>{" "}
             <button type="submit">Record it</button>
           </form>
-          <p class="meta dim">
-            The period is the part that does the work. Most engagements end by running out, not by anyone
-            pressing anything.
-          </p>
         </>
       ) : null}
 
@@ -286,10 +267,6 @@ screens.get("/agency/:subject", async (c) => {
           />
         ))
       )}
-      <p class="meta dim">
-        Stop this use is for a deal that genuinely ends early. What the person answered themselves is not
-        yours to end.
-      </p>
 
       <h2>Lapsed and ended</h2>
       {done.length === 0 ? <p class="dim">Nothing yet.</p> : done.map((x) => <EngagementCard c={x} />)}
@@ -350,10 +327,6 @@ screens.get("/me", async (c) => {
         Signed in as <strong>{label}</strong> · {subject.slice(0, 10)}… · this is her own page, on her phone
       </p>
       <h1>{label}, here is what you are tied to</h1>
-      <p class="sub">
-        Your agency handles the deals — the calls, the bookings, the negotiation. This page is so you can
-        see what you are tied to, and until when.
-      </p>
       <Boundary
         holds="What you see here: the engagements on record, their terms, and every time someone asked to use your data."
         stays="What stays with people: changing a deal. Ask your agency and they will call you back."
@@ -374,10 +347,6 @@ screens.get("/me", async (c) => {
       ) : null}
       {live ? (
         <>
-          <p class="sub">
-            You do not have to hand over everything. They act for you only in what you gave them — the rest
-            is yours, and nobody can agree to it on your behalf.
-          </p>
           <ScopeGrid
             all={SCOPES}
             delegated={live.scopes}
@@ -415,10 +384,6 @@ screens.get("/me", async (c) => {
       ) : null}
 
       <h2>What you are tied to</h2>
-      <p class="sub">
-        Each one ends when its term ends. Nobody has to do anything for that to happen — which is why the
-        date is the first thing on the card.
-      </p>
       {mine.length === 0 ? (
         <p class="dim">Nothing on record.</p>
       ) : (
@@ -441,18 +406,11 @@ screens.get("/me", async (c) => {
       {asked ? <p class="meta allow">Your agency has been told to call you.</p> : null}
 
       <h2>Where your data was used</h2>
-      <p class="sub">
-        Every time someone asked to generate from your data it is here, including the times they were
-        refused. This is the part you could never see before.
-      </p>
+      <p class="sub">Including the times they were refused.</p>
       <UseLog uses={uses} />
 
       <h2>The same authority, on chain</h2>
-      <p class="sub">
-        Who may speak for you is not only recorded in this app. On ENSv2 it is a role on your name, scoped
-        to the one record that holds your consent — so your agency can write that and nothing else. No
-        server has to cooperate for that limit to hold.
-      </p>
+      <p class="sub">A role on your own name, one per scope. No server has to cooperate for it to hold.</p>
       <ChainPanel s={chain} />
 
       {live && live.scopes.length > 0 ? (
@@ -460,8 +418,7 @@ screens.get("/me", async (c) => {
           <h2>If your agency went outside what you gave them</h2>
           <p class="sub">
             Not for a deal you disagree with — that is a phone call. This is for when they acted outside the
-            scope itself. You can stop letting them handle one scope without touching the rest, and after
-            that a request for it comes to you instead of being refused.
+            scope itself. Afterwards the scope is yours: a request for it comes to you.
           </p>
           {live.scopes.map((sc) => (
             <p>
@@ -588,9 +545,7 @@ document.getElementById("go").addEventListener("click", () => IDKit.open());
         <p class="dim">World ID is not configured on this deployment, so this cannot be confirmed.</p>
       )}
       <p class="meta dim">
-        This service stops honouring it the moment you confirm. Removing the matching role on ENS is a
-        signature only you can make — nothing here can do that for you, which is the point of it being
-        there.
+        Removing the matching role on ENS is a signature only you can make — nothing here can do it for you.
       </p>
     </Page>,
   );
@@ -629,10 +584,6 @@ screens.get("/generate", async (c) => {
         holds="Nobody opens this page in real life. A brand's generation pipeline makes this one call from its own code, before it produces anything."
         stays="Their tools, their interface, their workflow. We are a step inside it, not a product they log into."
       />
-      <p class="sub">
-        The button below stands in for that call so a person can watch it happen. The request and the
-        response are exactly what their code sends and receives.
-      </p>
       <form method="get" action="/generate">
         <input type="hidden" name="asked" value="1" />
         <select name="subject" aria-label="whose data">
