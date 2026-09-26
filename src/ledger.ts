@@ -19,6 +19,8 @@ export type Consent = {
   custodian?: string;
   /** どの委任の下で出したか。委任が切れればこの許諾も効かない */
   delegationId?: string;
+  /** 本人が World ID で直接答えた場合の pairwise sub。事務所の委任とは別系統 */
+  approvedBySub?: string;
 };
 
 export type Verdict = {
@@ -38,6 +40,7 @@ type Row = {
   revoked_by: string | null;
   custodian: string | null;
   delegation_id: string | null;
+  approved_by_sub: string | null;
 };
 
 const toConsent = (r: Row): Consent => ({
@@ -49,12 +52,13 @@ const toConsent = (r: Row): Consent => ({
   revokedBy: (r.revoked_by as Consent["revokedBy"]) ?? undefined,
   custodian: r.custodian ?? undefined,
   delegationId: r.delegation_id ?? undefined,
+  approvedBySub: r.approved_by_sub ?? undefined,
 });
 
 export async function put(db: D1Database, c: Consent): Promise<Consent> {
   await db
     .prepare(
-      "INSERT INTO consents (id, subject, scopes, expires_at, revoked_at, custodian, created_at, delegation_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+      "INSERT INTO consents (id, subject, scopes, expires_at, revoked_at, custodian, created_at, delegation_id, approved_by_sub) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
     )
     .bind(
       c.id,
@@ -65,6 +69,7 @@ export async function put(db: D1Database, c: Consent): Promise<Consent> {
       c.custodian ?? null,
       Date.now(),
       c.delegationId ?? null,
+      c.approvedBySub ?? null,
     )
     .run();
   return c;
@@ -105,12 +110,25 @@ export async function check(
           "The person withdrew the delegation to their agency, so every consent issued under it no longer applies.",
       };
     }
-  } else if (underDelegation.length > 0 && !covers(delegation, input.scope)) {
-    // 範囲ごとの委任＝その範囲を渡していなければ、事務所が出したものは効かない。
-    // 「広告は任せるが NSFW は渡していない」を表現できることが目的（09-26）。
+  } else if (!covers(delegation, input.scope)) {
+    // 本人が保持している範囲＝委任の経路が存在しない。**ここは本人しか答えられない**。
+    // 平坦に deny を返していたが、それでは World（いま本人に聞く）が不可欠な唯一の
+    // ケースを聞かずに断ることになっていた（09-26 に本人が指摘）。
+    // deny と ask の線＝deny は「事務所に聞けば答えられる」・ask は「本人しか答えられない」。
+    const live = found.find(
+      (c) => c.scopes.includes(input.scope) && c.revokedAt === undefined && c.expiresAt > now,
+    );
+    if (live) {
+      return {
+        decision: "allow",
+        reason: `The person answered for "${input.scope}" themselves; it holds until ${new Date(live.expiresAt).toISOString()}.`,
+        consentId: live.id,
+      };
+    }
     return {
-      decision: "deny",
-      reason: `"${input.scope}" was never delegated to the agency (they hold ${delegation.scopes.join(", ") || "nothing"}), so nothing they issued for it applies.`,
+      decision: "ask",
+      reason: `The person kept "${input.scope}" for themselves — the agency holds ${delegation.scopes.join(", ") || "nothing"}, so nobody can answer this on their behalf. Asking them.`,
+      requestId: crypto.randomUUID(),
     };
   }
 
@@ -137,7 +155,7 @@ export async function check(
   if (found.length === 0) {
     return {
       decision: "ask",
-      reason: "No consent on file for this person and scope — asking the human.",
+      reason: "Nothing is on the record for this person yet — asking them directly.",
       requestId: crypto.randomUUID(),
     };
   }
@@ -146,8 +164,12 @@ export async function check(
   // 巻き込むと、事務所が新しく出し直した許諾も死ぬ（09-25 デモ中に発見）。
   const inScope = found.filter((c) => c.scopes.includes(input.scope));
   if (inScope.length === 0) {
+    // この範囲は事務所が扱う＝答えを持っているのは事務所。本人に聞くのは筋が違う。
     const known = [...new Set(found.flatMap((c) => c.scopes))].join(", ");
-    return { decision: "deny", reason: `Scope "${input.scope}" is outside the granted scopes (${known}).` };
+    return {
+      decision: "deny",
+      reason: `Nothing on the record covers "${input.scope}" (the agency has agreed to ${known}). They handle this scope — ask them, not the person.`,
+    };
   }
 
   // 生きている許諾が1つでもあれば通す。取り消しはその許諾に効くのであって、人に効くのではない。
@@ -254,4 +276,19 @@ export async function revoke(
     row.revoked_by = by;
   }
   return toConsent(row);
+}
+
+/** 一覧に出す1行ぶんの集計。詳細を開かずに、見るべき相手が分かるように。 */
+export async function summaryFor(
+  db: D1Database,
+  subject: string,
+  now = Date.now(),
+): Promise<{ live: number; lapsed: number; ended: number; refusals: number }> {
+  const [consents, uses] = await Promise.all([bySubject(db, subject), usesBySubject(db, subject, 200)]);
+  return {
+    live: consents.filter((c) => c.revokedAt === undefined && c.expiresAt > now).length,
+    lapsed: consents.filter((c) => c.revokedAt === undefined && c.expiresAt <= now).length,
+    ended: consents.filter((c) => c.revokedAt !== undefined).length,
+    refusals: uses.filter((u) => u.decision !== "allow").length,
+  };
 }

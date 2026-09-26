@@ -32,9 +32,31 @@ ENSv2 was already shaped this way and our own layer was the coarse one:
 the centre and hands out some of the roles under her name — which is exactly what the
 product needed to say.
 
-A scope she kept produces `deny`, and the reason names her decision rather than the missing
-role: *"nsfw was never delegated to the agency"*. Both are true; hers is the one worth
-saying.
+**A scope she kept is where the live question lives.** There is no delegated path for it, so
+no yes can exist unless she gives one herself — which is why a request for it goes to her
+directly. That is the complement to the on-chain half, not an extra: ENS holds the standing
+authority, and the person answers for whatever she did not hand over.
+
+That split also fixes what `deny` and `ask` mean, which had blurred:
+
+| | Means | Goes to |
+|---|---|---|
+| **`deny`** | Somebody could answer this, and it is not the person — the agency handles the scope and has not agreed to it | the agency, by phone |
+| **`ask`** | Only the person can answer: she kept the scope, or a term she agreed lapsed | her, on her phone |
+
+An earlier version returned a flat `deny` for a scope she kept, which refused the one case
+that most needed a human to be asked.
+
+## One agency, many models
+
+An agency represents a roster, and the roster is the point: **what is delegated differs per
+person**. So the agency's entry screen is the list of people with what each one handed over,
+and the work happens on a person's page. Seeing three models side by side — one who
+delegated everything, one who delegated advertising only, one in between — says more about
+the permission model than any explanation of it.
+
+The ledger holds no names. A row says `model-a`, because the subject is an identifier and
+who that is belongs in the agency's own systems.
 
 ## The actors
 

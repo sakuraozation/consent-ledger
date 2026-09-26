@@ -32,6 +32,9 @@ ENS_RESOLVER = "0x8591D727D6a7317f843de72Bd2D31AB31A2841C9"
 # 範囲ごとにキーが分かれる＝`consent.ad-image` 等。委任はキー単位で掛ける
 # （ENSv2 の authorizeTextRoles がキー単位なので、そのまま写せる）
 ENS_CONSENT_KEY = "consent"
+# チェーン上の名前を持っているのはこの1人（会期中に登録した consentledger.eth）。
+# 他のモデルは app レイヤのみ＝この名前の役割を当てない。
+ENS_SUBJECT = "model-a"
 # 事務所役のアドレス（画面と /check がこの役割を見る）
 ENS_CUSTODIAN = "0x43e619de6A13ADF126AB4b329b8c89D1d0ae6694"
 

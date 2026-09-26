@@ -130,6 +130,7 @@ exists to stop, so the RPC being down costs a human approval, not a silent yes.
 
 | What | Where |
 |---|---|
+| **Where each half earns its place** — ENS holds standing authority per scope; World answers for the scopes nobody was given | [`src/ledger.ts`](src/ledger.ts) — `check`: a withheld scope returns `ask`, a scope the agency holds returns `deny` |
 | **World ID / IDKit** — the person's own action is gated on Proof of Human, verified server-side | [`src/worldid.ts`](src/worldid.ts) — `verifyProof`; the screen is `GET /me/delegations/:id/withdraw` in [`src/screens.tsx`](src/screens.tsx) |
 | **World ID for Agents** — device flow, ID token verified server-side against the issuer's JWKS | [`src/approval.ts`](src/approval.ts) — `startApproval`, `pollApproval` (the `jwtVerify` call is the line that matters) |
 | **ENSv2** — commit/reveal registration against the ETHRegistrar | [`scripts/ens-register.ts`](scripts/ens-register.ts) |

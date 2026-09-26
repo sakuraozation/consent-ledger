@@ -51,14 +51,22 @@ POST /check  { subject, scope }
 Four things can come back, each with a reason written to be shown to a human unchanged:
 
 - **allow** — in scope, inside the term
-- **deny** — the use was never granted. Nobody is asked; there is nothing to ask about
-- **ask** — no record yet, or the term has run out. A lapsed term does not mean she said no;
-  it means nobody has renewed it
+- **deny** — the agency handles this scope and has not agreed to it. The brand's route is a
+  phone call to them, not a question to her
+- **ask** — only she can answer: either the term she agreed has run out, or **this is a scope
+  she never delegated**. A lapsed term does not mean she said no; it means nobody renewed it.
+  A scope she kept means nobody was ever allowed to answer for her
 - **revoked** — the permission was ended
 
 > *Screen: the requesting side — one button, and the verdict with its reason.*
 
-## 4. When the answer is `ask`, a human decides
+## 4. When the answer is `ask`, she decides herself
+
+This is the half the chain cannot do. ENS holds who may speak for whom; it cannot ask a
+person a question right now. And for a scope she kept there is nobody else to ask — the
+agency was never given it.
+
+
 
 The pipeline stops and asks. It shows a short code. She approves on her phone — a separate
 device, a separate session, nothing to install for the pipeline.

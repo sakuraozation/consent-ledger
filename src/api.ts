@@ -29,7 +29,7 @@ api.post("/check", async (c) => {
     | null;
   if (!b?.subject || !b.scope) return c.json({ error: "subject and scope are required" }, 400);
   // 委任の権限はチェーンが正本なので、判定の前に読む（読めない時は ask に倒れる）
-  const chain = await readChainDelegation(c.env, c.env.ENS_CUSTODIAN, b.scope);
+  const chain = await readChainDelegation(c.env, c.env.ENS_CUSTODIAN, b.scope, b.subject);
   const verdict = await check(c.env.DB, { subject: b.subject, scope: b.scope, chain });
   // 判定は全部残す。拒否も含めて、本人が後から見られるように。
   await record(c.env.DB, {
@@ -91,12 +91,14 @@ api.get("/approvals/:requestId", async (c) => {
   if (r.status === "approved" && r.pending) {
     const existing = await getPendingByRequest(c.env.DB, r.pending.requestId);
     // 承認された時だけ許諾を作る。ここを通らない限り生成は起きない。
+    // 本人が直接答えたもの＝事務所の委任の下ではない。delegationId は付けず、
+    // 誰が答えたかを approvedBySub に残す（chain の役割の確認も通らない＝別系統）。
     await put(c.env.DB, {
       id: crypto.randomUUID(),
       subject: r.pending.subject,
       scopes: [r.pending.scope],
       expiresAt: Date.now() + 60_000,
-      custodian: existing?.sub,
+      approvedBySub: existing?.sub,
     });
   }
 
@@ -112,4 +114,6 @@ api.get("/approvals/:requestId", async (c) => {
 });
 
 /** 委任の権限をチェーンから読んだ生の状態。審査で開けるように口を1つ出す。 */
-api.get("/chain", async (c) => c.json(await readChainDelegation(c.env, c.env.ENS_CUSTODIAN)));
+api.get("/chain", async (c) =>
+  c.json(await readChainDelegation(c.env, c.env.ENS_CUSTODIAN, c.req.query("scope") ?? undefined)),
+);

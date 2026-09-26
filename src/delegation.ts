@@ -96,3 +96,11 @@ export async function withdraw(db: D1Database, id: string, now = Date.now()): Pr
   }
   return toDelegation(row);
 }
+
+/** 事務所が代理している相手の一覧。名前は持たない（台帳に名前を置かない設計）。 */
+export async function roster(db: D1Database): Promise<Delegation[]> {
+  const { results } = await db
+    .prepare("SELECT * FROM delegations WHERE withdrawn_at IS NULL ORDER BY granted_at DESC")
+    .all<Row>();
+  return results.map(toDelegation);
+}

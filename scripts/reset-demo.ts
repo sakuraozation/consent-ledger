@@ -11,9 +11,34 @@
 // チェーン側の役割は付与に戻す（scripts/ens-role.ts grant を別に叩く）。
 const local = process.argv.includes("--local");
 const flag = local ? "--local" : "--remote";
-const SUBJECT = "model-a";
 const CUSTODIAN = "Tokyo Model Agency";
-const LAPSE_SECONDS = 90; // 満了を見せる用。短すぎると撮影中に間に合わない
+const LAPSE_SECONDS = 90;
+const endOfYear = Date.UTC(2026, 11, 31, 23, 59, 59);
+
+// 事務所は複数のモデルを代理しており、**渡されている範囲は人ごとに違う**。
+// それが分かる初期状態にする（全か無かではないことを画面で見せるため）。
+const PEOPLE = [
+  {
+    subject: "model-a",
+    delegated: ["ad-image", "social-post"],
+    engagements: [
+      { scope: "ad-image", expiresAt: endOfYear },
+      { scope: "social-post", expiresAt: Date.now() + LAPSE_SECONDS * 1000 },
+    ],
+  },
+  {
+    // 全部任せている（よくある形）
+    subject: "model-b",
+    delegated: ["ad-image", "social-post", "lookbook", "nsfw"],
+    engagements: [{ scope: "lookbook", expiresAt: Date.now() + 90 * 86_400_000 }],
+  },
+  {
+    // 広告だけ。残りは自分で判断する
+    subject: "model-c",
+    delegated: ["ad-image"],
+    engagements: [{ scope: "ad-image", expiresAt: endOfYear }],
+  },
+];
 
 const sql = (q: string) =>
   Bun.spawnSync(["bunx", "wrangler", "d1", "execute", "consent-ledger", flag, "--command", q], {
@@ -23,41 +48,35 @@ const sql = (q: string) =>
 
 const run = (label: string, q: string) => {
   const r = sql(q);
-  const err = new TextDecoder().decode(r.stderr);
   if (r.exitCode !== 0) {
-    console.error(`${label}: 失敗\n${err.split("\n").slice(-6).join("\n")}`);
+    console.error(`${label}: 失敗\n${new TextDecoder().decode(r.stderr).split("\n").slice(-6).join("\n")}`);
     process.exit(1);
   }
   console.log(`${label}: ok`);
 };
 
 const now = Date.now();
-const delegationId = crypto.randomUUID();
-const longId = crypto.randomUUID();
-const shortId = crypto.randomUUID();
-const endOfYear = Date.UTC(2026, 11, 31, 23, 59, 59);
-
-const consent = (id: string, scope: string, expiresAt: number) =>
-  `INSERT INTO consents (id, subject, scopes, expires_at, revoked_at, custodian, created_at, delegation_id) VALUES ('${id}', '${SUBJECT}', '["${scope}"]', ${expiresAt}, NULL, '${CUSTODIAN}', ${now}, '${delegationId}');`;
-
 run(
   "古い記録を消す",
   `DELETE FROM uses; DELETE FROM consents; DELETE FROM delegations; DELETE FROM verifications; DELETE FROM change_requests;`,
 );
-// 渡す範囲は2つだけ。nsfw と lookbook は本人が持ったまま＝委任が全か無かでない
-// ことを画面で見せるための初期状態（docs/intents.md）。
-const DELEGATED = ["ad-image", "social-post"];
-run(
-  "権限の記録を1つ置く（範囲は2つだけ）",
-  `INSERT INTO delegations (id, subject, custodian, scopes, granted_at) VALUES ('${delegationId}', '${SUBJECT}', '${CUSTODIAN}', '${JSON.stringify(DELEGATED)}', ${now});`,
-);
-run("契約期間の engagement（2026-12-31 まで）", consent(longId, "ad-image", endOfYear));
-run(`満了を見せる engagement（${LAPSE_SECONDS}秒）`, consent(shortId, "social-post", now + LAPSE_SECONDS * 1000));
+
+for (const p of PEOPLE) {
+  const did = crypto.randomUUID();
+  const rows = [
+    `INSERT INTO delegations (id, subject, custodian, scopes, granted_at) VALUES ('${did}', '${p.subject}', '${CUSTODIAN}', '${JSON.stringify(p.delegated)}', ${now});`,
+    ...p.engagements.map(
+      (e) =>
+        `INSERT INTO consents (id, subject, scopes, expires_at, revoked_at, custodian, created_at, delegation_id) VALUES ('${crypto.randomUUID()}', '${p.subject}', '["${e.scope}"]', ${e.expiresAt}, NULL, '${CUSTODIAN}', ${now}, '${did}');`,
+    ),
+  ];
+  run(`${p.subject}（委任 ${p.delegated.join("/")}）`, rows.join(" "));
+}
 
 console.log(`\n${local ? "ローカル" : "本番"}のデモを初期化した`);
-console.log(`  subject     ${SUBJECT}`);
-console.log(`  権限の記録  ${delegationId.slice(0, 8)}`);
-console.log(`  engagement  ${longId.slice(0, 8)} ad-image    until 2026-12-31`);
-console.log(`  engagement  ${shortId.slice(0, 8)} social-post ${LAPSE_SECONDS}秒で満了`);
-console.log(`  委ねた範囲  ${DELEGATED.join(", ")}（nsfw と lookbook は本人が保持）`);
+for (const p of PEOPLE) {
+  const kept = ["ad-image", "social-post", "lookbook", "nsfw"].filter((sc) => !p.delegated.includes(sc));
+  console.log(`  ${p.subject}  委任 ${p.delegated.join(", ")}${kept.length ? ` / 本人が保持 ${kept.join(", ")}` : ""}`);
+}
+console.log(`  model-a の social-post は ${LAPSE_SECONDS} 秒で満了する`);
 console.log(`\nチェーン側の役割は別に戻す: bun run scripts/ens-role.ts grant`);

@@ -16,6 +16,8 @@ declare global {
     /** 既定の公開 RPC を使わない場合だけ設定する */
     SEPOLIA_RPC_URL?: string;
     ENS_CUSTODIAN?: string;
+    /** チェーン上の名前を持っている subject。他は app レイヤのみ */
+    ENS_SUBJECT?: string;
   }
 }
 export {};

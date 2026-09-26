@@ -2,8 +2,8 @@
 import { Hono } from "hono";
 import { getPendingByRequest, pollApproval, startApproval, sweep } from "./approval";
 import { readChainDelegation } from "./chain";
-import { activeFor, grant as grantDelegation, listFor, withdraw } from "./delegation";
-import { all, bySubject, check, put, record, revoke, usesBySubject } from "./ledger";
+import { activeFor, grant as grantDelegation, listFor, roster, withdraw } from "./delegation";
+import { bySubject, check, put, record, revoke, summaryFor, usesBySubject } from "./ledger";
 import { Boundary, ChainPanel, EngagementCard, Page, ScopeGrid, UseLog, VerdictBox } from "./ui";
 import { type Proof, REQUIRED_LEVEL, verifyProof } from "./worldid";
 
@@ -34,8 +34,8 @@ const termToExpiry = (term: string): number => {
 type ChangeRequest = { id: string; subject: string; consentId?: string; at: number };
 
 /** 範囲ごとにチェーン上の役割を読む。表に出すためだけの読み取り。 */
-const rolesByScope = async (env: Env): Promise<Record<string, boolean>> => {
-  const states = await Promise.all(SCOPES.map((sc) => readChainDelegation(env, env.ENS_CUSTODIAN, sc)));
+const rolesByScope = async (env: Env, subject?: string): Promise<Record<string, boolean>> => {
+  const states = await Promise.all(SCOPES.map((sc) => readChainDelegation(env, env.ENS_CUSTODIAN, sc, subject)));
   const out: Record<string, boolean> = {};
   SCOPES.forEach((sc, i) => {
     const st = states[i];
@@ -53,59 +53,36 @@ const openRequests = async (db: D1Database): Promise<ChangeRequest[]> => {
 };
 
 /**
- * 事務所の画面。**扱うのは権利だけ**——営業・調整・交渉は彼らの仕事のまま
- * （docs/intents.md 冒頭の分割表）。だからここに連絡機能を作らない。
+ * 事務所の一覧。**複数のモデルを代理している**のが実態なので、入口は名簿。
+ * 渡されている範囲がモデルごとに違うことも、ここで一目で分かる。
+ * 台帳に名前は持たない（subject は識別子）＝誰なのかは事務所の側の情報。
  */
 screens.get("/agency", async (c) => {
-  const [consents, delegation, requests, chainByScope] = await Promise.all([
-    all(c.env.DB),
-    activeFor(c.env.DB, DEMO_SUBJECT),
+  const [people, requests, chainByScope] = await Promise.all([
+    roster(c.env.DB),
     openRequests(c.env.DB),
     rolesByScope(c.env),
   ]);
-  const now = Date.now();
-  const live = consents.filter((x) => x.revokedAt === undefined && x.expiresAt > now);
-  const done = consents.filter((x) => !(x.revokedAt === undefined && x.expiresAt > now));
+  const summaries = await Promise.all(people.map((d) => summaryFor(c.env.DB, d.subject)));
+  const chainSubject = c.env.ENS_SUBJECT;
   return c.html(
-    <Page title="Agency — the rights you already agreed" here="agency">
-      <h1>The terms you already agreed, in a form a machine can answer with</h1>
+    <Page title="Agency — your roster" here="agency">
+      <h1>Your roster</h1>
       <Boundary
-        holds="This page holds rights: what may be used, in what scope, until when."
+        holds="This page holds rights: for each person, what may be used, in what scope, until when."
         stays="Bookings, casting, scheduling and the negotiation stay yours. Nothing here replaces a phone call."
       />
-      {delegation ? (
-        <p class="meta">
-          You act for <strong>{DEMO_SUBJECT}</strong> under the representation agreement on record since{" "}
-          {new Date(delegation.grantedAt).toISOString().slice(11, 19)}Z.
-        </p>
-      ) : (
-        <p class="meta deny">
-          No authority on record for {DEMO_SUBJECT}. Until there is, nothing you put here will be honoured.
-        </p>
-      )}
-
-      {delegation ? (
-        <>
-          <h2>What they delegated to you</h2>
-          <p class="sub">
-            Not every model hands over everything. You can put engagements on the record for the scopes they
-            delegated, and only those.
-          </p>
-          <ScopeGrid all={SCOPES} delegated={delegation.scopes} audience="agency" onChain={chainByScope} />
-        </>
-      ) : null}
-
       {requests.length > 0 ? (
         <>
-          <h2>They asked you to look at something</h2>
+          <h2>They asked you to call them</h2>
           <p class="sub">
-            Terms are settled between people. This only tells you to pick up the phone — there is no message
-            to read here and no reply to send.
+            Terms are settled between people. This only says who to ring — there is no message to read here
+            and no reply to send.
           </p>
           {requests.map((r) => (
             <div class="card">
               <div class="row">
-                <strong>{r.subject} asked about an engagement</strong>
+                <strong>{r.subject}</strong>
                 <form method="post" action={`/agency/requests/${r.id}/handled`}>
                   <button type="submit" class="ghost">
                     I called them
@@ -113,33 +90,151 @@ screens.get("/agency", async (c) => {
                 </form>
               </div>
               <div class="meta">
-                {new Date(r.at).toISOString().slice(11, 19)}Z
-                {r.consentId ? ` · engagement ${r.consentId.slice(0, 8)}` : ""}
+                asked about an engagement at {new Date(r.at).toISOString().slice(11, 19)}Z
+                {r.consentId ? ` · ${r.consentId.slice(0, 8)}` : ""}
               </div>
             </div>
           ))}
         </>
       ) : null}
 
-      <h2>Put an engagement on the record</h2>
-      <form method="post" action="/agency/consents">
-        <input type="text" name="subject" value={DEMO_SUBJECT} aria-label="who" />{" "}
-        <select name="scope" aria-label="scope">
-          {(delegation?.scopes ?? []).map((sc) => (
-            <option value={sc}>{sc}</option>
-          ))}
-        </select>{" "}
-        <select name="term" aria-label="term">
-          <option value="year">until 31 Dec 2026</option>
-          <option value="quarter">for 3 months</option>
-          <option value="demo">90 seconds — to watch a term lapse</option>
-        </select>{" "}
-        <button type="submit">Record it</button>
-      </form>
-      <p class="meta dim">
-        The period is the part that does the work. Most engagements end by running out, not by anyone
-        pressing anything.
+      <h2>Who you represent</h2>
+      <p class="sub">
+        Not everyone hands over the same things. What each person delegated is the first thing on their
+        row, because it decides what you can do at all.
       </p>
+      {people.length === 0 ? (
+        <p class="dim">Nobody has put you on record yet.</p>
+      ) : (
+        people.map((d, i) => {
+          const sum = summaries[i];
+          const withheld = SCOPES.filter((sc) => !d.scopes.includes(sc));
+          return (
+            <div class="card">
+              <div class="row">
+                <a href={`/agency/${encodeURIComponent(d.subject)}`} class="term">
+                  {d.subject}
+                </a>
+                <span class={`pill ${sum && sum.live > 0 ? "allow" : "ask"}`}>
+                  {sum ? `${sum.live} live` : "—"}
+                </span>
+              </div>
+              <div class="meta">
+                you handle <strong>{d.scopes.join(", ") || "nothing"}</strong>
+                {withheld.length > 0 ? ` · they kept ${withheld.join(", ")}` : ""}
+              </div>
+              <div class="meta dim">
+                {sum ? `${sum.lapsed} lapsed · ${sum.ended} ended early · ${sum.refusals} requests refused` : ""}
+              </div>
+            </div>
+          );
+        })
+      )}
+
+      <h2>Where the authority is held</h2>
+      <p class="sub">
+        Each scope is a separate role on the person's own ENS name — so what they kept cannot be widened from
+        here, by us or by you. One name was registered for this build
+        {chainSubject ? (
+          <>
+            {" "}
+            (<strong>{chainSubject}</strong>); the rest are recorded in this service only
+          </>
+        ) : null}
+        .
+      </p>
+      <ScopeGrid
+        all={SCOPES}
+        delegated={people.find((d) => d.subject === chainSubject)?.scopes ?? []}
+        audience="agency"
+        onChain={chainByScope}
+      />
+    </Page>,
+  );
+});
+
+/** モデル1人の詳細。ここが実際の作業面（載せる・早期に終える）。 */
+screens.get("/agency/:subject", async (c) => {
+  const subject = c.req.param("subject");
+  const [consents, delegation, requests, chainByScope, uses] = await Promise.all([
+    bySubject(c.env.DB, subject),
+    activeFor(c.env.DB, subject),
+    openRequests(c.env.DB),
+    rolesByScope(c.env, subject),
+    usesBySubject(c.env.DB, subject),
+  ]);
+  const now = Date.now();
+  const live = consents.filter((x) => x.revokedAt === undefined && x.expiresAt > now);
+  const done = consents.filter((x) => !(x.revokedAt === undefined && x.expiresAt > now));
+  const mine = requests.filter((r) => r.subject === subject);
+  return c.html(
+    <Page title={`Agency — ${subject}`} here="agency">
+      <p class="meta">
+        <a href="/agency" class="dim">
+          ← Your roster
+        </a>
+      </p>
+      <h1>{subject}</h1>
+      {delegation ? (
+        <p class="sub">
+          On record with you since {new Date(delegation.grantedAt).toISOString().slice(11, 19)}Z. You act
+          only within what they delegated.
+        </p>
+      ) : (
+        <p class="sub deny">
+          Nothing is on record for this person. Until it is, anything you put here will be refused.
+        </p>
+      )}
+
+      {mine.length > 0 ? (
+        <div class="card">
+          <div class="row">
+            <strong>They asked you to call them</strong>
+            <form method="post" action={`/agency/requests/${mine[0]?.id}/handled`}>
+              <button type="submit" class="ghost">
+                I called them
+              </button>
+            </form>
+          </div>
+          <div class="meta">Settle the terms on the phone, then change the record here.</div>
+        </div>
+      ) : null}
+
+      <h2>What they delegated to you</h2>
+      <ScopeGrid
+        all={SCOPES}
+        delegated={delegation?.scopes ?? []}
+        audience="agency"
+        onChain={chainByScope}
+      />
+      <p class="meta dim">
+        A scope they kept is not yours to act on. A request for it goes to them directly, and only they can
+        answer it.
+      </p>
+
+      {delegation && delegation.scopes.length > 0 ? (
+        <>
+          <h2>Put an engagement on the record</h2>
+          <form method="post" action="/agency/consents">
+            <input type="hidden" name="subject" value={subject} />
+            <select name="scope" aria-label="scope">
+              {delegation.scopes.map((sc) => (
+                <option value={sc}>{sc}</option>
+              ))}
+            </select>{" "}
+            <select name="term" aria-label="term">
+              <option value="year">until 31 Dec 2026</option>
+              <option value="quarter">for 3 months</option>
+              <option value="demo">90 seconds — to watch a term lapse</option>
+            </select>{" "}
+            <button type="submit">Record it</button>
+          </form>
+          <p class="meta dim">
+            The period is the part that does the work. Most engagements end by running out, not by anyone
+            pressing anything.
+          </p>
+        </>
+      ) : null}
 
       <h2>Live</h2>
       {live.length === 0 ? (
@@ -148,17 +243,24 @@ screens.get("/agency", async (c) => {
         live.map((x) => (
           <EngagementCard
             c={x}
-            action={{ label: "Stop this use", href: `/agency/${x.id}/revoke`, method: "post", ghost: true }}
+            action={
+              x.approvedBySub
+                ? undefined
+                : { label: "Stop this use", href: `/agency/${x.id}/revoke`, method: "post", ghost: true }
+            }
           />
         ))
       )}
       <p class="meta dim">
-        Stop this use is for a deal that genuinely ends early. It is yours to press because you are the
-        party to it.
+        Stop this use is for a deal that genuinely ends early. What the person answered themselves is not
+        yours to end.
       </p>
 
       <h2>Lapsed and ended</h2>
       {done.length === 0 ? <p class="dim">Nothing yet.</p> : done.map((x) => <EngagementCard c={x} />)}
+
+      <h2>Every request, including the refusals</h2>
+      <UseLog uses={uses} />
     </Page>,
   );
 });
@@ -177,7 +279,7 @@ screens.post("/agency/consents", async (c) => {
     custodian: delegation.custodian,
     delegationId: delegation.id,
   });
-  return c.redirect("/agency");
+  return c.redirect(`/agency/${encodeURIComponent(subject)}`);
 });
 
 /** 電話した、の記録。会話の内容は持たない。 */
@@ -202,8 +304,8 @@ screens.get("/me", async (c) => {
     bySubject(c.env.DB, subject),
     usesBySubject(c.env.DB, subject),
     listFor(c.env.DB, subject),
-    readChainDelegation(c.env, c.env.ENS_CUSTODIAN),
-    rolesByScope(c.env),
+    readChainDelegation(c.env, c.env.ENS_CUSTODIAN, undefined, subject),
+    rolesByScope(c.env, subject),
   ]);
   const live = delegations.find((d) => d.withdrawnAt === undefined);
   return c.html(
@@ -463,7 +565,7 @@ screens.get("/generate", async (c) => {
   const subject = c.req.query("subject") ?? DEMO_SUBJECT;
   const scope = c.req.query("scope") ?? "ad-image";
   const asked = c.req.query("asked");
-  const chain = await readChainDelegation(c.env, c.env.ENS_CUSTODIAN, scope);
+  const chain = await readChainDelegation(c.env, c.env.ENS_CUSTODIAN, scope, subject);
   const v = asked ? await check(c.env.DB, { subject, scope, chain }) : undefined;
   if (v) await record(c.env.DB, { subject, scope, verdict: v, requester: "pipeline-a (demo)" });
 

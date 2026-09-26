@@ -55,11 +55,17 @@ export async function readChainDelegation(
   env: Env,
   custodian?: string,
   scope?: string,
+  subject?: string,
 ): Promise<ChainState> {
   const resolver = env.ENS_RESOLVER;
   const name = env.ENS_NAME;
   const prefix = env.ENS_CONSENT_KEY;
   if (!resolver || !name || !prefix) return { configured: false, ok: false };
+  // チェーンに載っているのは1人ぶんの名前だけ（会期中に登録した consentledger.eth）。
+  // 他の人は app レイヤのみ＝その人の判定にこの名前の役割を当ててはいけない。
+  if (subject !== undefined && env.ENS_SUBJECT !== undefined && subject !== env.ENS_SUBJECT) {
+    return { configured: false, ok: false };
+  }
   const key = scope ? keyFor(prefix, scope) : prefix;
 
   const node = namehash(name);
