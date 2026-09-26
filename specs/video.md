@@ -125,10 +125,18 @@ Close on the four outcomes.
 > tied to and keeps what nobody has ever held. And the generating side gets a yes or no before
 > it spends, with a reason it can act on.
 >
-> One honest gap: the record is not resolvable through the universal resolver on this
-> deployment — it returns the zero address, and the registry is what I read instead. And I did
-> not connect payment. Paying her directly would mean giving her a key, and I decided she
-> should not need one. That is the next question, not a missing feature.
+> One thing I want to be straight about, because it is the most interesting limit. World ID
+> tells me a real human answered, and that it is the same human as last time. **It does not
+> tell me she is the rights holder** — and a likeness licence belongs to an identified person.
+> That link comes from her contract, established once by people. A passport check would not
+> fix it either, because a passport proves an identity, not who owns the right. So I used the
+> credential that is proportionate to the question I actually ask, and left the other question
+> where it already lives.
+>
+> Two smaller ones: the name is not resolvable through the universal resolver on this
+> deployment — it returns the zero address, so I read the registry directly. And I did not
+> connect payment. Paying her directly would mean giving her a key, and I decided she should
+> not need one. That is the next question, not a missing feature.
 
 ---
 
@@ -145,5 +153,7 @@ Close on the four outcomes.
 ## If a section has to go to fit 4:00
 
 Cut in this order: the lapsing engagement (2:05 can reference it verbally), then the
-`Stop this use` press, then the roster. **Never cut** the `ai-generation` ask path or the
-on-chain role removal — those are the two prize requirements that need to be seen.
+`Stop this use` press, then the roster. **Never cut** the `ai-generation` ask path, the
+on-chain role removal, or the sentence about what the credential does not prove — the first
+two are prize requirements that have to be seen, and the third is the part a judge will
+otherwise ask about.

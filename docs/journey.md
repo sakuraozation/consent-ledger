@@ -85,9 +85,13 @@ agency was never given it.
 The pipeline stops and asks. It shows a short code. She approves on her phone — a separate
 device, a separate session, nothing to install for the pipeline.
 
-Her identity is verified **on our server** against the issuer's keys. Until that passes,
-nothing is approved. The subject comes back the same as last time, which is how we know it
-is the same person and not someone borrowing her account.
+The proof is verified **on our server** against the issuer's keys. Until that passes, nothing
+is approved. The subject comes back the same as last time, which is how we know it is the same
+person and not someone borrowing her account.
+
+It does not establish that she is the rights holder, and it is not asked to. That was settled
+in her contract, by people, before any of this. What the credential answers is narrower and
+unavailable anywhere else: *a real human, the same one, right now.*
 
 **While it waits, the generation does not happen.** If she does not answer within the
 deadline, the request expires and the generation still does not happen. That is a decision,

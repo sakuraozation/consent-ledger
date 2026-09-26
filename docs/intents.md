@@ -92,6 +92,14 @@ The chain is not a fifth actor. Nobody's intent is "use ENS". The on-chain role 
 because one thing above has to survive this service being wrong, absent or dishonest: who
 is allowed to speak for whom.
 
+Two questions are easy to merge and must not be. **Who holds the right** is established once
+by people — the contract, and who owns the name — and no credential produces it; in this
+industry it is actively contested, since an agency that developed someone has a claim of its
+own, as do guardians and estates. **Who answered just now** is the only question we put a
+credential in front of, and Proof of Human is the whole of what it needs: a real human,
+the same one as before, enough to stop a script approving on its own. Everything the product
+says about credentials should stay on the second question.
+
 ## The term is the primitive, not the button
 
 The normal way permission ends is that **it runs out**. Nobody presses anything. A deal has

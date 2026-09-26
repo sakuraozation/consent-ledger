@@ -482,9 +482,9 @@ screens.get("/me/scopes/:scope/withdraw", async (c) => {
       </p>
       <div class="card">
         <div class="meta">
-          Credential required: <strong>{REQUIRED_LEVEL}</strong> (Proof of Human). We check that a real
-          person is doing this, and that it is the same person as before, because it changes what was agreed.
-          Not a passport, not a selfie — identity is not what this needs.
+          Credential required: <strong>{REQUIRED_LEVEL}</strong> (Proof of Human). It checks that a real
+          person is doing this, and that it is the same person as before — not who you are. Who holds the
+          right was settled in your contract, not here.
         </div>
       </div>
       {failed ? (

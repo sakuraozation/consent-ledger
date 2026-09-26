@@ -175,23 +175,55 @@ the whole argument had to be real.
 
 ### Why this credential, and not a stronger one
 
-The trust moment is *granting or revoking consent over your own body-scan data*. What has
-to be true is that the approver is a **real human**, and the **same human** as last time.
-It does not require knowing who they are.
+Two different questions get confused here, so let me separate them.
 
-So Proof of Human is the floor and also the ceiling here. A document or passport check
-would be disproportionate: identity is not what consent needs — **continuity** is. The
-pairwise `sub` gives exactly that, and nothing more. It came back identical across
-separate approvals, which is how the ledger can tell it is still her without ever learning
-her name. Three separate approvals in production returned the identical `sub`, which is the
-argument measured rather than asserted. `auth_time` is in the token too, so the freshness of
-an approval is available if a scope ever needs it.
+**Who holds the right** is not something a credential answers. A licence over someone's
+likeness belongs to an identified person, and if a brand has to prove later that *she*
+licensed it, "a unique human said yes" is not evidence. That link is established once, by
+people: the contract, and who owns the name. Adding a passport check would not change it —
+a passport proves a legal identity, not that this person is the rights holder, and in this
+industry that is genuinely contested (an agency that trained and developed someone has a
+claim of its own; so do guardians, and estates).
+
+**Who answered, just now** is the question we actually ask, and there Proof of Human is both
+the floor and the ceiling. What has to be true at that moment is that a real human is
+present, and that it is the same human as last time — enough to stop an agent or a script
+from approving on its own, and enough to notice an account being shared. The pairwise `sub`
+gives exactly that and nothing more: three separate approvals in production returned the
+identical value, which is the argument measured rather than asserted. `auth_time` is in the
+token too, so the freshness of an approval is available if a scope ever needs it.
+
+So the credential is proportionate to its own question, and deliberately silent on the other
+one. Claiming otherwise would be the easy version of this answer and the wrong one.
 
 The sharpest case is a scope she never delegated. There is no authority that could answer it
 — the agency was never given one — so the request goes to her, she approves on her phone, and
-the verdict comes back `allow` with the reason *"The person answered for nsfw themselves"*.
-That consent is recorded under her approval rather than under the agency's delegation, so
-removing the agency's on-chain role does not touch it. It was never theirs.
+the verdict comes back `allow` with the reason *"The person answered for ai-generation
+themselves"*. That consent is recorded under her approval rather than under the agency's
+delegation, so removing the agency's on-chain role does not touch it. It was never theirs.
+
+### What this does not solve
+
+Worth saying plainly, because the gaps are structural rather than unfinished work.
+
+- **A likeness licence is identity-bound, and World ID is identity-free by design.** The link
+  between the identifier on these records and the named person is asserted once by the people
+  who know her. We do not verify it, and nothing here can.
+- **Continuity is not the continuity of the right.** The same human keeps the same `sub` after
+  assigning their likeness rights away — which happens at scale, as Khaby Lame's January 2026
+  deal shows. Our records would still route the question to her.
+- **Availability.** A model's working life is travel. A path that needs her present, on her
+  phone, within two minutes will sometimes fail — and the fallback would be the agency, which
+  is the party this path exists to route around.
+- **A tap can be pressured.** Proof of Human makes an approval verifiable, not voluntary. In
+  an industry this asymmetric that matters. The usage log makes a pattern visible after the
+  fact, which is weaker than preventing it.
+- **The record is not resolvable through `UpgradableUniversalResolverProxy`** on this
+  deployment — it returns the zero address, so we read the registry directly.
+- **Payment is not connected.** x402 is wired on a separate route and returns 402, but the
+  payee cannot vary per request, and paying her directly would mean giving her a key — which
+  contradicts a decision this design makes on purpose. That is the next question, not a
+  missing feature.
 
 ## Try it
 
