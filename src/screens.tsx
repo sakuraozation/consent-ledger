@@ -4,7 +4,7 @@ import { getPendingByRequest, pollApproval, startApproval, sweep } from "./appro
 import { readChainDelegation } from "./chain";
 import { activeFor, grant as grantDelegation, listFor, withdraw } from "./delegation";
 import { all, bySubject, check, put, record, revoke, usesBySubject } from "./ledger";
-import { Boundary, ChainPanel, EngagementCard, Page, UseLog, VerdictBox } from "./ui";
+import { Boundary, ChainPanel, EngagementCard, Page, ScopeGrid, UseLog, VerdictBox } from "./ui";
 import { type Proof, REQUIRED_LEVEL, verifyProof } from "./worldid";
 
 export const screens = new Hono<{ Bindings: Env }>();
@@ -19,6 +19,8 @@ const form = async (c: { req: { formData: () => Promise<FormData> } }): Promise<
 };
 
 const DEMO_SUBJECT = "model-a";
+/** この作品で扱う範囲。委任はこの単位で掛かる（全か無かにしない）。 */
+const SCOPES = ["ad-image", "social-post", "lookbook", "nsfw"] as const;
 
 screens.get("/", (c) => c.redirect("/generate"));
 
@@ -30,6 +32,17 @@ const termToExpiry = (term: string): number => {
 };
 
 type ChangeRequest = { id: string; subject: string; consentId?: string; at: number };
+
+/** 範囲ごとにチェーン上の役割を読む。表に出すためだけの読み取り。 */
+const rolesByScope = async (env: Env): Promise<Record<string, boolean>> => {
+  const states = await Promise.all(SCOPES.map((sc) => readChainDelegation(env, env.ENS_CUSTODIAN, sc)));
+  const out: Record<string, boolean> = {};
+  SCOPES.forEach((sc, i) => {
+    const st = states[i];
+    if (st?.ok) out[sc] = st.granted === true;
+  });
+  return out;
+};
 
 /** まだ電話していない申し出。会話は持たない＝1行が立つだけ。 */
 const openRequests = async (db: D1Database): Promise<ChangeRequest[]> => {
@@ -44,10 +57,11 @@ const openRequests = async (db: D1Database): Promise<ChangeRequest[]> => {
  * （docs/intents.md 冒頭の分割表）。だからここに連絡機能を作らない。
  */
 screens.get("/agency", async (c) => {
-  const [consents, delegation, requests] = await Promise.all([
+  const [consents, delegation, requests, chainByScope] = await Promise.all([
     all(c.env.DB),
     activeFor(c.env.DB, DEMO_SUBJECT),
     openRequests(c.env.DB),
+    rolesByScope(c.env),
   ]);
   const now = Date.now();
   const live = consents.filter((x) => x.revokedAt === undefined && x.expiresAt > now);
@@ -69,6 +83,17 @@ screens.get("/agency", async (c) => {
           No authority on record for {DEMO_SUBJECT}. Until there is, nothing you put here will be honoured.
         </p>
       )}
+
+      {delegation ? (
+        <>
+          <h2>What they delegated to you</h2>
+          <p class="sub">
+            Not every model hands over everything. You can put engagements on the record for the scopes they
+            delegated, and only those.
+          </p>
+          <ScopeGrid all={SCOPES} delegated={delegation.scopes} audience="agency" onChain={chainByScope} />
+        </>
+      ) : null}
 
       {requests.length > 0 ? (
         <>
@@ -100,9 +125,9 @@ screens.get("/agency", async (c) => {
       <form method="post" action="/agency/consents">
         <input type="text" name="subject" value={DEMO_SUBJECT} aria-label="who" />{" "}
         <select name="scope" aria-label="scope">
-          <option value="ad-image">ad-image</option>
-          <option value="social-post">social-post</option>
-          <option value="lookbook">lookbook</option>
+          {(delegation?.scopes ?? []).map((sc) => (
+            <option value={sc}>{sc}</option>
+          ))}
         </select>{" "}
         <select name="term" aria-label="term">
           <option value="year">until 31 Dec 2026</option>
@@ -173,11 +198,12 @@ screens.post("/agency/:id/revoke", async (c) => {
 screens.get("/me", async (c) => {
   const subject = c.req.query("subject") ?? DEMO_SUBJECT;
   const asked = c.req.query("asked");
-  const [mine, uses, delegations, chain] = await Promise.all([
+  const [mine, uses, delegations, chain, chainByScope] = await Promise.all([
     bySubject(c.env.DB, subject),
     usesBySubject(c.env.DB, subject),
     listFor(c.env.DB, subject),
     readChainDelegation(c.env, c.env.ENS_CUSTODIAN),
+    rolesByScope(c.env),
   ]);
   const live = delegations.find((d) => d.withdrawnAt === undefined);
   return c.html(
@@ -204,18 +230,42 @@ screens.get("/me", async (c) => {
             terms you agreed onto the record; they cannot go outside them.
           </div>
         </div>
-      ) : (
+      ) : null}
+      {live ? (
+        <>
+          <p class="sub">
+            You do not have to hand over everything. They act for you only in what you gave them — the rest
+            is yours, and nobody can agree to it on your behalf.
+          </p>
+          <ScopeGrid
+            all={SCOPES}
+            delegated={live.scopes}
+            audience="model"
+            onChain={chainByScope}
+            chainOk={chain.configured ? chain.ok : undefined}
+          />
+        </>
+      ) : null}
+      {!live ? (
         <div class="card">
           <div class="row">
             <strong class="dim">Nobody is on record for you</strong>
-            <form method="post" action="/me/delegations">
-              <input type="hidden" name="subject" value={subject} />
-              <button type="submit">Put my agency on record</button>
-            </form>
           </div>
           <div class="meta">Until they are, nothing they agree to will be honoured.</div>
+          <form method="post" action="/me/delegations" style="display:block;margin-top:.75rem">
+            <input type="hidden" name="subject" value={subject} />
+            <div class="meta" style="margin-bottom:.4rem">Choose what they may handle:</div>
+            {SCOPES.map((sc) => (
+              <label class="meta" style="margin-right:1rem">
+                <input type="checkbox" name={sc} checked={sc !== "nsfw"} /> {sc}
+              </label>
+            ))}
+            <p style="margin:.6rem 0 0">
+              <button type="submit">Put my agency on record</button>
+            </p>
+          </form>
         </div>
-      )}
+      ) : null}
 
       <h2>What you are tied to</h2>
       <p class="sub">
@@ -293,8 +343,10 @@ screens.post("/me/requests", async (c) => {
 /** 委任する。実運用では World ID の承認を通す（デモでは1クリック）。 */
 screens.post("/me/delegations", async (c) => {
   const f = await form(c);
+  const picked = SCOPES.filter((sc) => f.get(sc) !== null);
   await grantDelegation(c.env.DB, {
     subject: String(f.get("subject") ?? DEMO_SUBJECT),
+    scopes: picked.length > 0 ? [...picked] : ["ad-image"],
     custodian: "Tokyo Model Agency",
   });
   return c.redirect("/me");
@@ -411,36 +463,40 @@ screens.get("/generate", async (c) => {
   const subject = c.req.query("subject") ?? DEMO_SUBJECT;
   const scope = c.req.query("scope") ?? "ad-image";
   const asked = c.req.query("asked");
-  const chain = await readChainDelegation(c.env, c.env.ENS_CUSTODIAN);
+  const chain = await readChainDelegation(c.env, c.env.ENS_CUSTODIAN, scope);
   const v = asked ? await check(c.env.DB, { subject, scope, chain }) : undefined;
   if (v) await record(c.env.DB, { subject, scope, verdict: v, requester: "pipeline-a (demo)" });
 
   return c.html(
-    <Page title="Generate — consent check" here="generate">
-      <h1>Generate from this person's body data</h1>
+    <Page title="Inside a brand's pipeline" here="generate">
+      <h1>One call, from inside a brand's own pipeline</h1>
+      <Boundary
+        holds="Nobody opens this page in real life. A brand's generation pipeline makes this one call from its own code, before it produces anything."
+        stays="Their tools, their interface, their workflow. We are a step inside it, not a product they log into."
+      />
       <p class="sub">
-        The pipeline asks the ledger before it generates. Nothing is produced until the answer comes back.
+        The button below stands in for that call so a person can watch it happen. The request and the
+        response are exactly what their code sends and receives.
       </p>
       <form method="get" action="/generate">
         <input type="hidden" name="asked" value="1" />
         <input type="text" name="subject" value={subject} aria-label="subject" />{" "}
         <select name="scope" aria-label="scope">
-          <option value="ad-image" selected={scope === "ad-image"}>
-            ad-image
-          </option>
-          <option value="social-post" selected={scope === "social-post"}>
-            social-post
-          </option>
-          <option value="nsfw" selected={scope === "nsfw"}>
-            nsfw
-          </option>
+          {SCOPES.map((sc) => (
+            <option value={sc} selected={scope === sc}>
+              {sc}
+            </option>
+          ))}
         </select>{" "}
         <button type="submit">Generate</button>
       </form>
 
+      <pre class="paste">{`POST /check\n{ "subject": "${subject}", "scope": "${scope}" }`}</pre>
+
       {v ? (
         <>
           <VerdictBox v={v} />
+          <pre class="paste">{JSON.stringify({ decision: v.decision, reason: v.reason }, null, 2)}</pre>
           {v.decision === "allow" ? (
             <p class="dim">
               The image would be produced here. Stop the use on the person's page, then press Generate again.

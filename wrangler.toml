@@ -29,7 +29,9 @@ WORLD_WITHDRAW_ACTION = "withdraw-authority"
 # 登録＝scripts/ens-register.ts / 委任＝scripts/ens-delegate.ts
 ENS_NAME = "consentledger.eth"
 ENS_RESOLVER = "0x8591D727D6a7317f843de72Bd2D31AB31A2841C9"
-ENS_CONSENT_KEY = "consent.bodyscan"
+# 範囲ごとにキーが分かれる＝`consent.ad-image` 等。委任はキー単位で掛ける
+# （ENSv2 の authorizeTextRoles がキー単位なので、そのまま写せる）
+ENS_CONSENT_KEY = "consent"
 # 事務所役のアドレス（画面と /check がこの役割を見る）
 ENS_CUSTODIAN = "0x43e619de6A13ADF126AB4b329b8c89D1d0ae6694"
 

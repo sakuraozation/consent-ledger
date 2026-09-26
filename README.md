@@ -89,8 +89,11 @@ there as well as in our own layer. It is registered and working on Sepolia:
   as admin — [`0x8591D727…`](https://eth-sepolia.blockscout.com/address/0x8591D727D6a7317f843de72Bd2D31AB31A2841C9)
 
 `authorizeTextRoles(name, key, account, grant)` is the delegation, and it is scoped **per
-text key** — which is finer than we expected and matches the product exactly: the agency
-gets the consent record and nothing else.
+text key**. That turned out to be the feature the product needed: a model who lets her
+agency handle advertising but keeps anything adjacent to nudity is two roles granted and two
+withheld on the same name — `consent.ad-image` yes, `consent.nsfw` never. The person sits at
+the centre of her own name and hands out some of the roles under it. Nothing extra had to be
+written for that.
 
 | Here | On chain |
 |---|---|
@@ -131,6 +134,7 @@ exists to stop, so the RPC being down costs a human approval, not a silent yes.
 | **World ID for Agents** — device flow, ID token verified server-side against the issuer's JWKS | [`src/approval.ts`](src/approval.ts) — `startApproval`, `pollApproval` (the `jwtVerify` call is the line that matters) |
 | **ENSv2** — commit/reveal registration against the ETHRegistrar | [`scripts/ens-register.ts`](scripts/ens-register.ts) |
 | **ENSv2 Enhanced Access Control** — delegation as a per-key role, granted and revoked | [`scripts/ens-delegate.ts`](scripts/ens-delegate.ts) — `authorizeTextRoles`, and the three calls that must revert |
+| **Partial delegation** — per-scope authority, mapped onto per-key EAC roles | [`src/delegation.ts`](src/delegation.ts) — `covers`; [`src/chain.ts`](src/chain.ts) — `keyFor`; the grid is `ScopeGrid` in [`src/ui.tsx`](src/ui.tsx) |
 | The four outcomes and their order | [`src/ledger.ts`](src/ledger.ts) — `check` |
 | API surface | [`src/api.ts`](src/api.ts) |
 | Screens (server-rendered, no client bundle) | [`src/screens.tsx`](src/screens.tsx), [`src/ui.tsx`](src/ui.tsx) |

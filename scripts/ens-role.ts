@@ -10,7 +10,8 @@ import { sepolia } from "viem/chains";
 
 const RESOLVER = "0x8591D727D6a7317f843de72Bd2D31AB31A2841C9" as const;
 const NAME = "consentledger.eth";
-const KEY = "consent.bodyscan";
+// 範囲ごとにキーが分かれる。委任は範囲単位で掛かる（全か無かではない）。
+const PREFIX = "consent";
 
 const abi = parseAbi([
   "function authorizeTextRoles(bytes toName, string key, address account, bool grant) returns (bool)",
@@ -34,9 +35,11 @@ const devVar = async (key: string) => {
 
 const action = process.argv[2];
 if (action !== "grant" && action !== "withdraw") {
-  console.error("grant か withdraw");
+  console.error("使い方: bun run scripts/ens-role.ts grant|withdraw [scope ...]");
   process.exit(1);
 }
+// 既定はデモで委ねている2つ。nsfw は渡さない（渡していないことを見せるため）。
+const scopes = process.argv.length > 3 ? process.argv.slice(3) : ["ad-image", "social-post"];
 const personKey = await devVar("EVM_PRIVATE_KEY");
 const agencyKey = await devVar("AGENCY_PRIVATE_KEY");
 if (!personKey?.startsWith("0x") || !agencyKey?.startsWith("0x")) {
@@ -48,11 +51,14 @@ const agency = privateKeyToAccount(agencyKey as `0x${string}`);
 const pub = createPublicClient({ chain: sepolia, transport: http() });
 const wallet = createWalletClient({ account: person, chain: sepolia, transport: http() });
 
-const hash = await wallet.writeContract({
-  address: RESOLVER,
-  abi,
-  functionName: "authorizeTextRoles",
-  args: [dnsEncode(NAME), KEY, agency.address, action === "grant"],
-});
-const r = await pub.waitForTransactionReceipt({ hash });
-console.log(`${action} ${agency.address} on ${NAME}/${KEY}: ${r.status} (${hash})`);
+for (const scope of scopes) {
+  const key = `${PREFIX}.${scope}`;
+  const hash = await wallet.writeContract({
+    address: RESOLVER,
+    abi,
+    functionName: "authorizeTextRoles",
+    args: [dnsEncode(NAME), key, agency.address, action === "grant"],
+  });
+  const r = await pub.waitForTransactionReceipt({ hash });
+  console.log(`${action} ${NAME}/${key} -> ${agency.address}: ${r.status} (${hash})`);
+}

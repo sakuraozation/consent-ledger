@@ -44,9 +44,12 @@ run(
   "古い記録を消す",
   `DELETE FROM uses; DELETE FROM consents; DELETE FROM delegations; DELETE FROM verifications; DELETE FROM change_requests;`,
 );
+// 渡す範囲は2つだけ。nsfw と lookbook は本人が持ったまま＝委任が全か無かでない
+// ことを画面で見せるための初期状態（docs/intents.md）。
+const DELEGATED = ["ad-image", "social-post"];
 run(
-  "権限の記録を1つ置く",
-  `INSERT INTO delegations (id, subject, custodian, granted_at) VALUES ('${delegationId}', '${SUBJECT}', '${CUSTODIAN}', ${now});`,
+  "権限の記録を1つ置く（範囲は2つだけ）",
+  `INSERT INTO delegations (id, subject, custodian, scopes, granted_at) VALUES ('${delegationId}', '${SUBJECT}', '${CUSTODIAN}', '${JSON.stringify(DELEGATED)}', ${now});`,
 );
 run("契約期間の engagement（2026-12-31 まで）", consent(longId, "ad-image", endOfYear));
 run(`満了を見せる engagement（${LAPSE_SECONDS}秒）`, consent(shortId, "social-post", now + LAPSE_SECONDS * 1000));
@@ -56,4 +59,5 @@ console.log(`  subject     ${SUBJECT}`);
 console.log(`  権限の記録  ${delegationId.slice(0, 8)}`);
 console.log(`  engagement  ${longId.slice(0, 8)} ad-image    until 2026-12-31`);
 console.log(`  engagement  ${shortId.slice(0, 8)} social-post ${LAPSE_SECONDS}秒で満了`);
+console.log(`  委ねた範囲  ${DELEGATED.join(", ")}（nsfw と lookbook は本人が保持）`);
 console.log(`\nチェーン側の役割は別に戻す: bun run scripts/ens-role.ts grant`);

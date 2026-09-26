@@ -13,15 +13,26 @@ export type Delegation = {
   id: string;
   subject: string;
   custodian: string;
+  /**
+   * 渡した範囲だけ。モデルによって事務所に委ねる範囲は違う（広告は任せるが
+   * 下着や NSFW は自分で判断する等）ので、全か無かで持たない。
+   * ENSv2 側は `consent.<scope>` のテキストキーごとの役割として同じ形で存在する。
+   */
+  scopes: string[];
   grantedAt: number;
   grantedBySub?: string;
   withdrawnAt?: number;
 };
 
+/** その範囲は事務所に委ねられているか。 */
+export const covers = (d: Delegation | undefined, scope: string): boolean =>
+  d !== undefined && d.withdrawnAt === undefined && d.scopes.includes(scope);
+
 type Row = {
   id: string;
   subject: string;
   custodian: string;
+  scopes: string | null;
   granted_at: number;
   granted_by_sub: string | null;
   withdrawn_at: number | null;
@@ -31,6 +42,7 @@ const toDelegation = (r: Row): Delegation => ({
   id: r.id,
   subject: r.subject,
   custodian: r.custodian,
+  scopes: r.scopes ? (JSON.parse(r.scopes) as string[]) : [],
   grantedAt: r.granted_at,
   grantedBySub: r.granted_by_sub ?? undefined,
   withdrawnAt: r.withdrawn_at ?? undefined,
@@ -38,18 +50,21 @@ const toDelegation = (r: Row): Delegation => ({
 
 export async function grant(
   db: D1Database,
-  d: { subject: string; custodian: string; grantedBySub?: string },
+  d: { subject: string; custodian: string; scopes: string[]; grantedBySub?: string },
 ): Promise<Delegation> {
   const row: Delegation = {
     id: crypto.randomUUID(),
     subject: d.subject,
     custodian: d.custodian,
+    scopes: d.scopes,
     grantedAt: Date.now(),
     grantedBySub: d.grantedBySub,
   };
   await db
-    .prepare("INSERT INTO delegations (id, subject, custodian, granted_at, granted_by_sub) VALUES (?, ?, ?, ?, ?)")
-    .bind(row.id, row.subject, row.custodian, row.grantedAt, row.grantedBySub ?? null)
+    .prepare(
+      "INSERT INTO delegations (id, subject, custodian, scopes, granted_at, granted_by_sub) VALUES (?, ?, ?, ?, ?, ?)",
+    )
+    .bind(row.id, row.subject, row.custodian, JSON.stringify(row.scopes), row.grantedAt, row.grantedBySub ?? null)
     .run();
   return row;
 }

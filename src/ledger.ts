@@ -6,7 +6,7 @@
 export type Decision = "allow" | "deny" | "ask" | "revoked";
 
 import type { ChainState } from "./chain";
-import { activeFor } from "./delegation";
+import { activeFor, covers } from "./delegation";
 
 export type Consent = {
   id: string;
@@ -96,6 +96,24 @@ export async function check(
   const [found, delegation] = await Promise.all([bySubject(db, input.subject), activeFor(db, input.subject)]);
   const underDelegation = found.filter((c) => c.delegationId !== undefined);
 
+  // 委任が無い／取り下げられている＝事務所が出した許諾は効かない。本人の最後の一手。
+  if (!delegation) {
+    if (underDelegation.length > 0) {
+      return {
+        decision: "revoked",
+        reason:
+          "The person withdrew the delegation to their agency, so every consent issued under it no longer applies.",
+      };
+    }
+  } else if (underDelegation.length > 0 && !covers(delegation, input.scope)) {
+    // 範囲ごとの委任＝その範囲を渡していなければ、事務所が出したものは効かない。
+    // 「広告は任せるが NSFW は渡していない」を表現できることが目的（09-26）。
+    return {
+      decision: "deny",
+      reason: `"${input.scope}" was never delegated to the agency (they hold ${delegation.scopes.join(", ") || "nothing"}), so nothing they issued for it applies.`,
+    };
+  }
+
   // 委任の権限の正本はチェーン（ENSv2 の EAC）。D1 に許諾が残っていても、
   // 事務所の役割が剥奪されていれば通さない。読めなかった時は allow に倒さず人に聞く
   // ＝RPC の不調で許諾の範囲が広がらないようにする（src/chain.ts の fail closed）。
@@ -112,17 +130,6 @@ export async function check(
       return {
         decision: "revoked",
         reason: `On chain, the agency no longer holds the role that lets it write "${chain.key}" on ${chain.name} — so consents it issued no longer apply.`,
-      };
-    }
-  }
-
-  // 委任が無い／取り下げられている＝事務所が出した許諾は効かない。本人の最後の一手。
-  if (!delegation) {
-    if (underDelegation.length > 0) {
-      return {
-        decision: "revoked",
-        reason:
-          "The person withdrew the delegation to their agency, so every consent issued under it no longer applies.",
       };
     }
   }

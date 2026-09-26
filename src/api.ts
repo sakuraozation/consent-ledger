@@ -29,7 +29,7 @@ api.post("/check", async (c) => {
     | null;
   if (!b?.subject || !b.scope) return c.json({ error: "subject and scope are required" }, 400);
   // 委任の権限はチェーンが正本なので、判定の前に読む（読めない時は ask に倒れる）
-  const chain = await readChainDelegation(c.env, c.env.ENS_CUSTODIAN);
+  const chain = await readChainDelegation(c.env, c.env.ENS_CUSTODIAN, b.scope);
   const verdict = await check(c.env.DB, { subject: b.subject, scope: b.scope, chain });
   // 判定は全部残す。拒否も含めて、本人が後から見られるように。
   await record(c.env.DB, {

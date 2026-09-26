@@ -246,3 +246,47 @@ export const ChainPanel: FC<{ s: ChainState }> = ({ s }) => {
     </div>
   );
 };
+
+/**
+ * 何を委ね、何を渡していないかの一覧。**これが委任の本体**——モデルによって
+ * 事務所に渡す範囲は違うので、全か無かでは表現できない（docs/intents.md）。
+ * withheld は「まだ押していない」ではなく「渡していない」と読めるように書く。
+ */
+export const ScopeGrid: FC<{
+  all: readonly string[];
+  delegated: string[];
+  chainOk?: boolean;
+  onChain?: Record<string, boolean>;
+  audience: "agency" | "model";
+}> = ({ all, delegated, chainOk, onChain, audience }) => (
+  <div class="card">
+    <table class="log">
+      {all.map((sc) => {
+        const yes = delegated.includes(sc);
+        const chain = onChain?.[sc];
+        return (
+          <tr>
+            <td>
+              <strong>{sc}</strong>
+            </td>
+            <td>
+              <span class={`pill ${yes ? "allow" : "deny"}`}>{yes ? "delegated" : "withheld"}</span>
+            </td>
+            <td class="meta">
+              {yes
+                ? audience === "agency"
+                  ? "you may put engagements on the record for this"
+                  : "your agency handles this for you"
+                : audience === "agency"
+                  ? "not yours to act on — the person kept this"
+                  : "you kept this; nobody can agree to it on your behalf"}
+            </td>
+            <td class="meta dim">
+              {chainOk === false ? "chain unreadable" : chain === undefined ? "" : chain ? "role on chain" : "no role"}
+            </td>
+          </tr>
+        );
+      })}
+    </table>
+  </div>
+);

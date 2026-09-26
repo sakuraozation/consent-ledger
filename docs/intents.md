@@ -19,13 +19,30 @@ agency is the customer: we are not asking them to give anything up.
 Built on the premise that the rights half becomes programmable. If that premise is wrong,
 the product is wrong — which is why it is stated here rather than implied.
 
+## Delegation is partial, per scope
+
+Models do not hand over the same things. One lets the agency handle advertising and social
+but keeps lingerie and anything adjacent to nudity for herself; another delegates everything.
+So authority is not one switch — it is a set of scopes, and what is *not* in the set is
+something nobody can agree to on her behalf.
+
+ENSv2 was already shaped this way and our own layer was the coarse one:
+`authorizeTextRoles(name, key, account, grant)` is scoped **per text key**, so
+`consent.ad-image` and `consent.nsfw` are separate roles on the same name. The person is at
+the centre and hands out some of the roles under her name — which is exactly what the
+product needed to say.
+
+A scope she kept produces `deny`, and the reason names her decision rather than the missing
+role: *"nsfw was never delegated to the agency"*. Both are true; hers is the one worth
+saying.
+
 ## The actors
 
 | Actor | Intent | Surface | Not built |
 |---|---|---|---|
 | **The agency** (the operator of all of this) | "Hold the terms we already agreed in a form a machine can answer with, and end a use when the deal says it ends." | A dashboard: who is represented, the term and scope of each engagement, what is live and what has lapsed, the log of refusals, and **Stop this use** for when a deal actually ends early. | Contract drafting, invoicing, talent CRM, and everything under Representation above. Those are their business, not a gap. |
 | **The person** (model) | "Show me what I am tied to and until when — and let me raise it with them if it is wrong." | One page, mostly read-only: which engagements she is tied to, **the term of each**, the same authority as it stands on chain, and where her data was used. One thing she can send: **Ask to change this**, which goes to a person. | Buttons for the daily path. Stopping a single use is the agency's job, reached by asking them. She is not asked to hold a wallet either: the chain is shown as a state, not as a thing to operate. |
-| **The generating side** (brand, or the agent acting for it) | "Tell me whether I may generate this, before I do, and tell me why if not." | One API call: `POST /check` → `allow` / `deny` / `ask` / `revoked`, each with a reason meant to be shown unchanged. | A UI. They already have one; this is a step inside their pipeline. |
+| **The generating side** (brand, or the agent acting for it) | "Tell me whether I may generate this, before I do, and tell me why if not." | One API call: `POST /check` → `allow` / `deny` / `ask` / `revoked`, each with a reason meant to be shown unchanged. **No human opens anything.** | A UI. They already have one, and this is a step inside it. The `/generate` page is a stand-in so a person can watch the call happen, and it says so on the page — otherwise it reads as a third product we built for brands. |
 | **The agent** (when the answer is `ask`) | "Get a human to decide, and do nothing until they do." | `POST /approvals` returns a user code; the human approves elsewhere; `GET /approvals/:id` reports waiting → approved / denied / expired. | Any default that proceeds without an answer. Waiting is the behaviour, not a failure to handle. |
 
 The chain is not a fifth actor. Nobody's intent is "use ENS". The on-chain role exists

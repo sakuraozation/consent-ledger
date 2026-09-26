@@ -29,6 +29,9 @@ const resourceFor = (node: `0x${string}`, key: string) =>
     ),
   );
 
+/** 範囲ごとのテキストキー。委任は範囲単位で掛かるので、キーも範囲単位。 */
+export const keyFor = (prefix: string, scope: string) => `${prefix}.${scope}`;
+
 export type ChainState = {
   /** 設定が無い＝チェーン連携を使わない（ローカル開発） */
   configured: boolean;
@@ -45,11 +48,19 @@ export type ChainState = {
   error?: string;
 };
 
-export async function readChainDelegation(env: Env, custodian?: string): Promise<ChainState> {
+/**
+ * 範囲1つぶんの委任を読む。scope を渡さない時は設定の既定キーを見る（画面の概要用）。
+ */
+export async function readChainDelegation(
+  env: Env,
+  custodian?: string,
+  scope?: string,
+): Promise<ChainState> {
   const resolver = env.ENS_RESOLVER;
   const name = env.ENS_NAME;
-  const key = env.ENS_CONSENT_KEY;
-  if (!resolver || !name || !key) return { configured: false, ok: false };
+  const prefix = env.ENS_CONSENT_KEY;
+  if (!resolver || !name || !prefix) return { configured: false, ok: false };
+  const key = scope ? keyFor(prefix, scope) : prefix;
 
   const node = namehash(name);
   const client = createPublicClient({
