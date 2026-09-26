@@ -217,11 +217,17 @@ export async function check(
 }
 
 
+/**
+ * ログに載る出来事。判定の4つに加えて、**聞いたあとどうなったか**も残す——
+ * `ask` で終わっていると「聞かれて、答えなかった」が本人に見えない（09-26）。
+ */
+export type Outcome = Decision | "approved" | "declined" | "unanswered";
+
 export type Use = {
   id: string;
   subject: string;
   scope: string;
-  decision: Decision;
+  decision: Outcome;
   consentId?: string;
   requester?: string;
   at: number;
@@ -259,6 +265,17 @@ export async function record(
     .run();
 }
 
+/** 承認の結末を1行足す（判定ではなく出来事なので、reason を持たない）。 */
+export async function recordOutcome(
+  db: D1Database,
+  u: { subject: string; scope: string; outcome: Outcome; requester?: string },
+): Promise<void> {
+  await db
+    .prepare("INSERT INTO uses (id, subject, scope, decision, consent_id, requester, at) VALUES (?, ?, ?, ?, ?, ?, ?)")
+    .bind(crypto.randomUUID(), u.subject, u.scope, u.outcome, null, u.requester ?? null, Date.now())
+    .run();
+}
+
 export async function usesBySubject(db: D1Database, subject: string, limit = 50): Promise<Use[]> {
   const { results } = await db
     .prepare("SELECT * FROM uses WHERE subject = ? ORDER BY at DESC LIMIT ?")
@@ -268,7 +285,7 @@ export async function usesBySubject(db: D1Database, subject: string, limit = 50)
     id: r.id,
     subject: r.subject,
     scope: r.scope,
-    decision: r.decision as Decision,
+    decision: r.decision as Outcome,
     consentId: r.consent_id ?? undefined,
     requester: r.requester ?? undefined,
     at: r.at,
@@ -303,6 +320,7 @@ export async function summaryFor(
     live: consents.filter((c) => c.revokedAt === undefined && c.expiresAt > now).length,
     lapsed: consents.filter((c) => c.revokedAt === undefined && c.expiresAt <= now).length,
     ended: consents.filter((c) => c.revokedAt !== undefined).length,
-    refusals: uses.filter((u) => u.decision !== "allow").length,
+    // 結末の行（approved 等）は要求ではないので数えない
+    refusals: uses.filter((u) => ["deny", "revoked"].includes(u.decision)).length,
   };
 }

@@ -1,6 +1,6 @@
 // 3つの画面。どれも判定を持たず、ledger の verdict をそのまま映す。
 import { Hono } from "hono";
-import { getPendingByRequest, pollApproval, startApproval, sweep } from "./approval";
+import { getPendingByRequest, pendingCounts, pendingFor, pollApproval, startApproval, sweep } from "./approval";
 import { readChainDelegation } from "./chain";
 import { activeFor, grant as grantDelegation, listFor, removeScope, roster } from "./delegation";
 import { bySubject, check, put, record, revoke, summaryFor, usesBySubject } from "./ledger";
@@ -85,10 +85,13 @@ const openRequests = async (db: D1Database): Promise<ChangeRequest[]> => {
  * 台帳に名前は持たない（subject は識別子）＝誰なのかは事務所の側の情報。
  */
 screens.get("/agency", async (c) => {
-  const [people, requests, chainByScope] = await Promise.all([
+  // 画面を開いた時に時間切れを掃く（cron を持たないので、見た人が掃く）
+  await sweep(c.env.DB);
+  const [people, requests, chainByScope, waiting] = await Promise.all([
     roster(c.env.DB),
     openRequests(c.env.DB),
     rolesByScope(c.env),
+    pendingCounts(c.env.DB),
   ]);
   const summaries = await Promise.all(people.map((d) => summaryFor(c.env.DB, d.subject)));
   const chainSubject = c.env.ENS_SUBJECT;
@@ -139,8 +142,15 @@ screens.get("/agency", async (c) => {
                 <a href={`/agency/${encodeURIComponent(d.subject)}`} class="term">
                   {d.label ?? d.subject.slice(0, 8)}
                 </a>
-                <span class={`pill ${sum && sum.live > 0 ? "allow" : "ask"}`}>
-                  {sum ? `${sum.live} live` : "—"}
+                <span>
+                  {waiting[d.subject] ? (
+                    <span class="pill ask" style="margin-right:.4rem">
+                      {waiting[d.subject]} waiting on them
+                    </span>
+                  ) : null}
+                  <span class={`pill ${sum && sum.live > 0 ? "allow" : "ask"}`}>
+                    {sum ? `${sum.live} live` : "—"}
+                  </span>
                 </span>
               </div>
               <div class="meta">
@@ -312,17 +322,19 @@ screens.post("/agency/:id/revoke", async (c) => {
 screens.get("/me", async (c) => {
   const subject = c.req.query("subject") ?? c.env.DEMO_SUBJECT ?? FALLBACK_SUBJECT;
   const asked = c.req.query("asked");
-  const [mine, uses, delegations, chain, chainByScope] = await Promise.all([
+  await sweep(c.env.DB);
+  const [mine, uses, delegations, chain, chainByScope, waiting] = await Promise.all([
     bySubject(c.env.DB, subject),
     usesBySubject(c.env.DB, subject),
     listFor(c.env.DB, subject),
     readChainDelegation(c.env, c.env.ENS_CUSTODIAN, undefined, subject),
     rolesByScope(c.env, subject),
+    pendingFor(c.env.DB, subject),
   ]);
   const live = delegations.find((d) => d.withdrawnAt === undefined);
   const label = live?.label ?? subject.slice(0, 8);
   return c.html(
-    <Page title={`${label} — what you are tied to`} here="me" who={label}>
+    <Page title={`${label} — what you are tied to`} here="me" who={label} refresh={waiting.length > 0 ? 5 : undefined}>
       <p class="meta dim">
         Signed in as <strong>{label}</strong> · {subject.slice(0, 10)}… · this is her own page, on her phone
       </p>
@@ -331,6 +343,25 @@ screens.get("/me", async (c) => {
         holds="What you see here: the engagements on record, their terms, and every time someone asked to use your data."
         stays="What stays with people: changing a deal. Ask your agency and they will call you back."
       />
+
+      {waiting.length > 0 ? (
+        <>
+          <h2>Someone is asking you, right now</h2>
+          <p class="sub">Nothing is generated while this waits. If you do not answer, it does not happen.</p>
+          {waiting.map((w) => (
+            <div class="card">
+              <div class="row">
+                <span class="term">{w.scope}</span>
+                <span class="pill ask">{Math.max(0, Math.round((w.expiresAt - Date.now()) / 1000))}s left</span>
+              </div>
+              <div class="meta">
+                Answer on your phone with the code <strong>{w.userCode}</strong> at{" "}
+                <a href="https://sandbox.auth.world.org/device">sandbox.auth.world.org/device</a>
+              </div>
+            </div>
+          ))}
+        </>
+      ) : null}
 
       <h2>Who acts for you</h2>
       {live ? (

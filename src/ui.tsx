@@ -168,12 +168,15 @@ export const Boundary: FC<{ holds: string; stays: string }> = ({ holds, stays })
 
 export const UseLog: FC<{ uses: Use[] }> = ({ uses }) => {
   if (uses.length === 0) return <p class="dim">Nobody has asked for this yet.</p>;
-  const allowed = uses.filter((u) => u.decision === "allow").length;
-  const refused = uses.length - allowed;
+  // 判定の行が「要求」、結末の行はそのあとの出来事。混ぜて数えると二重になる。
+  const outcomes = new Set(["approved", "declined", "unanswered"]);
+  const asks = uses.filter((u) => !outcomes.has(u.decision));
+  const wentThrough = uses.filter((u) => u.decision === "allow" || u.decision === "approved").length;
   return (
     <>
       <p class="meta">
-        {uses.length} request{uses.length === 1 ? "" : "s"} · {allowed} went through · {refused} did not
+        {asks.length} request{asks.length === 1 ? "" : "s"} · {wentThrough} went through ·{" "}
+        {asks.length - wentThrough} did not
       </p>
       <table class="log">
         <tbody>

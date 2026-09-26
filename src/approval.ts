@@ -14,6 +14,8 @@ const TOKEN = `${ISSUER}/api/v1/token`;
 const JWKS = createRemoteJWKSet(new URL(`${ISSUER}/.well-known/jwks.json`));
 const DEVICE_GRANT = "urn:ietf:params:oauth:grant-type:device_code";
 
+import { recordOutcome } from "./ledger";
+
 export type Pending = {
   requestId: string;
   subject: string;
@@ -125,7 +127,14 @@ async function setResult(db: D1Database, userCode: string, result: string, sub?:
 export async function pollApproval(
   db: D1Database,
   input: { requestId: string; clientId: string; clientSecret: string },
-): Promise<{ status: "waiting" | "approved" | "denied" | "expired"; reason: string; pending?: Pending }> {
+): Promise<{
+  status: "waiting" | "approved" | "denied" | "expired";
+  reason: string;
+  pending?: Pending;
+  /** この呼び出しで状態が確定したか。結末をログに二度書かないための印 */
+  settledNow?: boolean;
+}> {
+  let settled = false;
   const row = await db
     .prepare("SELECT * FROM approvals WHERE request_id = ? ORDER BY created_at DESC")
     .bind(input.requestId)
@@ -137,7 +146,9 @@ export async function pollApproval(
   if (Date.now() > p.expiresAt) {
     await setResult(db, p.userCode, "expired");
     p.result = "expired";
+    settled = true;
     return {
+      settledNow: settled,
       status: "expired",
       reason: "The human did not answer in time; the action does not proceed.",
       pending: p,
@@ -159,6 +170,7 @@ export async function pollApproval(
     }
     await setResult(db, p.userCode, "denied");
     p.result = "denied";
+    settled = true;
     return {
       status: "denied",
       reason: `The human declined or the request failed (${body.error ?? res.status}); the action does not proceed.`,
@@ -177,8 +189,10 @@ export async function pollApproval(
     p.sub = String(payload.sub);
     p.authTime = typeof payload.auth_time === "number" ? payload.auth_time : undefined;
     p.result = "approved";
+    settled = true;
     await setResult(db, p.userCode, "approved", p.sub);
     return {
+      settledNow: settled,
       status: "approved",
       reason: `Approved by ${p.sub} (pairwise subject), verified against the issuer's JWKS.`,
       pending: p,
@@ -201,7 +215,50 @@ export async function getPendingByRequest(db: D1Database, requestId: string) {
   return row ? toPending(row) : undefined;
 }
 
-/** 時間切れを掃く。待たせたまま通してしまわないため。 */
-export async function sweep(db: D1Database, now = Date.now()) {
+/**
+ * 時間切れを掃く。待たせたまま通してしまわないため。
+ * **掃く側が結末も書く**——先に result を立てるのはここなので、ポーリング側に任せると
+ * 「答えなかった」が誰にも記録されずに消える（09-26 実測）。
+ */
+export async function sweep(db: D1Database, now = Date.now()): Promise<Pending[]> {
+  const { results } = await db
+    .prepare("SELECT * FROM approvals WHERE result IS NULL AND expires_at < ?")
+    .bind(now)
+    .all<Row>();
+  if (results.length === 0) return [];
   await db.prepare("UPDATE approvals SET result = 'expired' WHERE result IS NULL AND expires_at < ?").bind(now).run();
+  const swept = results.map(toPending);
+  for (const p of swept) {
+    await recordOutcome(db, {
+      subject: p.subject,
+      scope: p.scope,
+      outcome: "unanswered",
+      requester: "nobody answered in time",
+    });
+  }
+  return swept;
+}
+
+/** いまこの人に向かって開いている要求。本人の画面に「誰かが聞いている」を出すため。 */
+export async function pendingFor(db: D1Database, subject: string, now = Date.now()): Promise<Pending[]> {
+  const { results } = await db
+    .prepare(
+      "SELECT * FROM approvals WHERE subject = ? AND result IS NULL AND expires_at > ? ORDER BY created_at DESC",
+    )
+    .bind(subject, now)
+    .all<Row>();
+  return results.map(toPending);
+}
+
+/** 名簿に待機件数を出すため（誰を待たせているかは事務所も知るべき）。 */
+export async function pendingCounts(db: D1Database, now = Date.now()): Promise<Record<string, number>> {
+  const { results } = await db
+    .prepare(
+      "SELECT subject, COUNT(*) as n FROM approvals WHERE result IS NULL AND expires_at > ? GROUP BY subject",
+    )
+    .bind(now)
+    .all<{ subject: string; n: number }>();
+  const out: Record<string, number> = {};
+  for (const r of results) out[r.subject] = r.n;
+  return out;
 }

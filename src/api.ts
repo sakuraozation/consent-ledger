@@ -2,9 +2,10 @@
 import { Hono } from "hono";
 import { getPendingByRequest, pollApproval, startApproval, sweep } from "./approval";
 import { readChainDelegation } from "./chain";
-import { type Consent, all, check, put, record, revoke, usesBySubject } from "./ledger";
+import { type Consent, all, check, put, record, recordOutcome, revoke, usesBySubject } from "./ledger";
 
 export const api = new Hono<{ Bindings: Env }>();
+
 
 /** 許諾を置く。実運用では事務所の画面から、デモでは直接叩く。 */
 api.post("/consents", async (c) => {
@@ -87,6 +88,18 @@ api.get("/approvals/:requestId", async (c) => {
   if (!clientId || !clientSecret) return c.json({ error: "World OIDC client is not configured" }, 500);
   await sweep(c.env.DB);
   const r = await pollApproval(c.env.DB, { requestId: c.req.param("requestId"), clientId, clientSecret });
+
+  // 結末をログに残す＝「聞かれて、答えなかった」が本人に見える（ask で終わらせない）。
+  // 同じ結末を二度書かないように、状態が今このリクエストで確定した時だけ書く。
+  // 時間切れは sweep が書く（先に result を立てる主体だから）。ここは答えが来た時だけ。
+  if (r.pending && r.settledNow && (r.status === "approved" || r.status === "denied")) {
+    await recordOutcome(c.env.DB, {
+      subject: r.pending.subject,
+      scope: r.pending.scope,
+      outcome: r.status === "approved" ? "approved" : "declined",
+      requester: "the person's own device",
+    });
+  }
 
   if (r.status === "approved" && r.pending) {
     const existing = await getPendingByRequest(c.env.DB, r.pending.requestId);
