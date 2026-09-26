@@ -17,6 +17,8 @@
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
     "pay": "bun run scripts/pay.ts",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "bun test",
+    "check": "bunx biome ci . && bunx tsc --noEmit && bun test"
   }
 }

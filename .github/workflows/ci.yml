@@ -1,0 +1,31 @@
+# 人間が最後に確かめたことを、機械が毎回確かめ直す。
+# イベント駆動のみ（push と pull_request）＝`schedule:` は置かない。誰も呼んでいないのに
+# 動く面を増やすと、壊れても気づかない状態になる。
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - run: bun install --frozen-lockfile
+
+      # 形式と型。落ちるならここで落とす（テストより速い）
+      - name: format and lint
+        run: bunx biome ci .
+      - name: types
+        run: bunx tsc --noEmit
+
+      # 権限の境界と壊れ方の向き。ネットワークも鍵も要らない
+      - name: tests
+        run: bun test

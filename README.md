@@ -142,6 +142,7 @@ exists to stop, so the RPC being down costs a human approval, not a silent yes.
 | Screens (server-rendered, no client bundle) | [`src/screens.tsx`](src/screens.tsx), [`src/ui.tsx`](src/ui.tsx) |
 | The on-chain role read from the running service, and the fail-closed rule | [`src/chain.ts`](src/chain.ts), and the block at the top of `check` in [`src/ledger.ts`](src/ledger.ts) |
 | Every way this fails, and why none of them return `allow` | [`docs/journey.md`](docs/journey.md) §6; the handler is `app.onError` in [`src/index.ts`](src/index.ts) |
+| **Tests for the parts that must not fail open** | [`test/`](test/) — `bun test`, 17 cases, no keys or network needed; the reasoning is in [`test/README.md`](test/README.md) |
 | Integration debrief | [`FEEDBACK.md`](FEEDBACK.md) |
 
 ### The one action nobody may do on her behalf
@@ -262,6 +263,28 @@ companies. GitHub [@sakuraozation](https://github.com/sakuraozation) · envlop.c
 
 First web3 hackathon; the subject came from a conversation with a working model, not from
 a list of ideas.
+
+## Checks
+
+```bash
+bun run check     # biome, tsc --noEmit, bun test
+```
+
+17 tests, no keys and no network, so CI runs the same command on every push and pull request
+([`.github/workflows/ci.yml`](.github/workflows/ci.yml) — event-driven only, no schedule).
+
+They are deliberately lopsided. The failure this project exists to prevent is not a crash, it
+is a **silent yes**, so almost every invariant worth holding takes the form *"do not return
+`allow` here"* — a scope the person kept, a scope taken back, a delegation that is gone, an
+on-chain role that was removed, and **a chain we cannot read at all**. Two of them are
+regressions from bugs that shipped: a revocation that leaked across scopes, and a taken-back
+scope whose old consent kept passing while claiming she had answered it herself.
+
+The database in the tests is real SQLite with the real migrations applied, not a stub, so a
+schema that drifts from the code fails here rather than in production. What the tests do *not*
+cover is stated in [`test/README.md`](test/README.md): live calls to World and ENS, the
+browser-side IDKit widget, and rendering. Those were checked by hand and the results are
+written down.
 
 ## Run it
 
