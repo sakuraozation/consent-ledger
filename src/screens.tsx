@@ -20,8 +20,34 @@ const form = async (c: { req: { formData: () => Promise<FormData> } }): Promise<
 
 /** /me と /generate の既定の相手。実運用では認証されたセッションから来る。 */
 const FALLBACK_SUBJECT = "4KQXW7ZP2NTLD6YHS3MRVA9JBC5EGU8F";
-/** この作品で扱う範囲。委任はこの単位で掛かる（全か無かにしない）。 */
-const SCOPES = ["ad-image", "social-post", "lookbook", "nsfw"] as const;
+/**
+ * 扱う範囲。**軸は「成果物の種類」ではなく「使い方」**——広告もルックブックも
+ * 事務所が当然やる仕事なので、成果物で切ると「本人が保持する範囲」が不自然になる
+ * （09-26 に本人が指摘）。線は1本で、撮影の成果物の掲載は事務所、**体のデータを
+ * 生成 AI に使うことは本人**。後者は事務所がまだコントロールしていない領域で、
+ * 連絡も支払いも直接本人に来るべきもの。
+ */
+const SCOPES = [
+  // 事務所の仕事（従来からある）
+  "campaign-print",
+  "campaign-social",
+  "lookbook",
+  // 本人のもの（生成 AI 以降に現れた）
+  "ai-generation",
+  "ai-training",
+  "digital-double",
+] as const;
+
+/** 従来の仕事か、生成 AI 以降のものか。画面の並びと説明文がこれで変わる。 */
+const AGENCY_SIDE: readonly string[] = ["campaign-print", "campaign-social", "lookbook"];
+const SCOPE_NOTE: Record<string, string> = {
+  "campaign-print": "the shoot's images, in print and out-of-home",
+  "campaign-social": "the shoot's images, on the brand's channels",
+  lookbook: "the shoot's images, in trade and wholesale material",
+  "ai-generation": "new images generated from her body data — not from the shoot",
+  "ai-training": "her body data used to train a model",
+  "digital-double": "a persistent likeness that can be posed and reused without her",
+};
 
 screens.get("/", (c) => c.redirect("/generate"));
 
@@ -152,6 +178,8 @@ screens.get("/agency", async (c) => {
         delegated={people.find((d) => d.subject === chainSubject)?.scopes ?? []}
         audience="agency"
         onChain={chainByScope}
+        notes={SCOPE_NOTE}
+        conventional={AGENCY_SIDE}
       />
     </Page>,
   );
@@ -211,6 +239,8 @@ screens.get("/agency/:subject", async (c) => {
         delegated={delegation?.scopes ?? []}
         audience="agency"
         onChain={chainByScope}
+        notes={SCOPE_NOTE}
+        conventional={AGENCY_SIDE}
       />
       <p class="meta dim">
         A scope they kept is not yours to act on. A request for it goes to them directly, and only they can
@@ -354,6 +384,8 @@ screens.get("/me", async (c) => {
             audience="model"
             onChain={chainByScope}
             chainOk={chain.configured ? chain.ok : undefined}
+            notes={SCOPE_NOTE}
+            conventional={AGENCY_SIDE}
           />
         </>
       ) : null}
@@ -365,10 +397,14 @@ screens.get("/me", async (c) => {
           <div class="meta">Until they are, nothing they agree to will be honoured.</div>
           <form method="post" action="/me/delegations" style="display:block;margin-top:.75rem">
             <input type="hidden" name="subject" value={subject} />
-            <div class="meta" style="margin-bottom:.4rem">Choose what they may handle:</div>
+            <div class="meta" style="margin-bottom:.4rem">
+              Choose what they may handle. The shoot's images are the usual answer; what is generated from
+              your body data does not have to be.
+            </div>
             {SCOPES.map((sc) => (
               <label class="meta" style="margin-right:1rem">
-                <input type="checkbox" name={sc} checked={sc !== "nsfw"} /> {sc}
+                {/* 既定は従来の仕事だけ＝生成 AI の側は渡さないところから始める */}
+                <input type="checkbox" name={sc} checked={AGENCY_SIDE.includes(sc)} /> {sc}
               </label>
             ))}
             <p style="margin:.6rem 0 0">

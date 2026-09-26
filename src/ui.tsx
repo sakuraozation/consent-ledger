@@ -256,16 +256,30 @@ export const ScopeGrid: FC<{
   chainOk?: boolean;
   onChain?: Record<string, boolean>;
   audience: "agency" | "model";
-}> = ({ all, delegated, chainOk, onChain, audience }) => (
+  /** 各範囲が何を指すか。用語だけでは読めないので必ず添える */
+  notes?: Record<string, string>;
+  /** 従来の仕事の側（残りは生成 AI 以降のもの）。見出しで区切る */
+  conventional?: readonly string[];
+}> = ({ all, delegated, chainOk, onChain, audience, notes, conventional }) => (
   <div class="card">
     <table class="log">
-      {all.map((sc) => {
+      {all.map((sc, i) => {
         const yes = delegated.includes(sc);
         const chain = onChain?.[sc];
+        const firstNew = conventional !== undefined && i > 0 && conventional.includes(all[i - 1] as string) && !conventional.includes(sc);
         return (
+          <>
+            {firstNew ? (
+              <tr>
+                <td colspan={4} class="meta dim" style="padding-top:.75rem">
+                  — anything generated from her body data, which is not part of a shoot —
+                </td>
+              </tr>
+            ) : null}
           <tr>
             <td>
               <strong>{sc}</strong>
+              {notes?.[sc] ? <div class="meta dim">{notes[sc]}</div> : null}
             </td>
             <td>
               <span class={`pill ${yes ? "allow" : "deny"}`}>{yes ? "delegated" : "withheld"}</span>
@@ -283,6 +297,7 @@ export const ScopeGrid: FC<{
               {chainOk === false ? "chain unreadable" : chain === undefined ? "" : chain ? "role on chain" : "no role"}
             </td>
           </tr>
+          </>
         );
       })}
     </table>

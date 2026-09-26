@@ -89,9 +89,10 @@ there as well as in our own layer. It is registered and working on Sepolia:
   as admin — [`0x8591D727…`](https://eth-sepolia.blockscout.com/address/0x8591D727D6a7317f843de72Bd2D31AB31A2841C9)
 
 `authorizeTextRoles(name, key, account, grant)` is the delegation, and it is scoped **per
-text key**. That turned out to be the feature the product needed: a model who lets her
-agency handle advertising but keeps anything adjacent to nudity is two roles granted and two
-withheld on the same name — `consent.ad-image` yes, `consent.nsfw` never. The person sits at
+text key**. That turned out to be the feature the product needed, because the scopes divide
+along a real line: the shoot's images are the agency's business and always have been, while
+anything *generated* from her body data is hers and has never belonged to anyone.
+`consent.campaign-print` is a role they hold; `consent.ai-generation` is one they do not. The person sits at
 the centre of her own name and hands out some of the roles under it. Nothing extra had to be
 written for that.
 

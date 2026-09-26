@@ -19,12 +19,31 @@ agency is the customer: we are not asking them to give anything up.
 Built on the premise that the rights half becomes programmable. If that premise is wrong,
 the product is wrong — which is why it is stated here rather than implied.
 
-## Delegation is partial, per scope
+## Delegation is partial, and the line is the kind of use
 
-Models do not hand over the same things. One lets the agency handle advertising and social
-but keeps lingerie and anything adjacent to nudity for herself; another delegates everything.
-So authority is not one switch — it is a set of scopes, and what is *not* in the set is
-something nobody can agree to on her behalf.
+The scopes are not media types. Advertising, lookbooks and social are the outputs of a shoot,
+and an agency handles those by definition — an enquiry about any of them goes to them, which
+is the whole reason a model has representation. Cutting the scopes that way made "a scope she
+kept" look implausible, because there is no version of this business where she personally
+fields a lookbook request.
+
+The line that actually exists is **the kind of use**:
+
+| | Examples | Whose |
+|---|---|---|
+| **The shoot's images, published** | `campaign-print`, `campaign-social`, `lookbook` | The agency's, and has been for decades |
+| **Anything generated from her body data** | `ai-generation`, `ai-training`, `digital-double` | Hers — nobody has held this yet |
+
+The second row is new enough that no standard practice covers it. It is not part of a shoot's
+deliverables, it was not priced in the booking, and in most existing contracts it is simply
+absent. So the enquiry, the decision and the payment should reach **her**, not a desk that was
+built for bookings.
+
+That is why delegation is a set rather than a switch, and why the default we seed hands over
+the first row and withholds the second. A model who does delegate the second row is not an
+error — it happens, at scale: Khaby Lame's likeness deal in January 2026 licensed exactly
+that, an AI digital twin of his image, voice and behaviour. The point is that it should be a
+separate decision from letting an agency book jobs.
 
 ENSv2 was already shaped this way and our own layer was the coarse one:
 `authorizeTextRoles(name, key, account, grant)` is scoped **per text key**, so

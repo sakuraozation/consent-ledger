@@ -22,28 +22,28 @@ const endOfYear = Date.UTC(2026, 11, 31, 23, 59, 59);
 // 名前は事務所の名簿にだけ載る＝許諾・使用ログ・承認には現れない。
 const PEOPLE = [
   {
-    // 本人の画面に出るのはこの人（一部だけ委ねている＝いちばん説明が要らない例）
+    // 本人の画面に出るのはこの人。従来の仕事は任せ、生成 AI の側は自分で持つ
     label: "Aoi",
     subject: "4KQXW7ZP2NTLD6YHS3MRVA9JBC5EGU8F",
-    delegated: ["ad-image", "social-post"],
+    delegated: ["campaign-print", "campaign-social", "lookbook"],
     engagements: [
-      { scope: "ad-image", expiresAt: endOfYear },
-      { scope: "social-post", expiresAt: Date.now() + LAPSE_SECONDS * 1000 },
+      { scope: "campaign-print", expiresAt: endOfYear },
+      { scope: "campaign-social", expiresAt: Date.now() + LAPSE_SECONDS * 1000 },
     ],
   },
   {
-    // 全部任せている（よくある形）
+    // 生成 AI の分も事務所に任せている（実在する形。Khaby Lame の取引がその規模の例）
     label: "Mei",
     subject: "9TMRJ4VC8ZPQKD2NLXAS7HYE3BWFU6GO",
-    delegated: ["ad-image", "social-post", "lookbook", "nsfw"],
-    engagements: [{ scope: "lookbook", expiresAt: Date.now() + 90 * 86_400_000 }],
+    delegated: ["campaign-print", "campaign-social", "lookbook", "ai-generation"],
+    engagements: [{ scope: "ai-generation", expiresAt: Date.now() + 90 * 86_400_000 }],
   },
   {
-    // 広告だけ。残りは自分で判断する
+    // 掲載だけ。ルックブックも生成もまだ渡していない
     label: "Rin",
     subject: "Q2WLZ6XNBK9SDT4YRJ7PMHFAE3CVU8G5",
-    delegated: ["ad-image"],
-    engagements: [{ scope: "ad-image", expiresAt: endOfYear }],
+    delegated: ["campaign-print"],
+    engagements: [{ scope: "campaign-print", expiresAt: endOfYear }],
   },
 ];
 
@@ -82,10 +82,12 @@ for (const p of PEOPLE) {
 
 console.log(`\n${local ? "ローカル" : "本番"}のデモを初期化した`);
 for (const p of PEOPLE) {
-  const kept = ["ad-image", "social-post", "lookbook", "nsfw"].filter((sc) => !p.delegated.includes(sc));
+  const kept = ["campaign-print", "campaign-social", "lookbook", "ai-generation", "ai-training", "digital-double"].filter(
+    (sc) => !p.delegated.includes(sc),
+  );
   console.log(
     `  ${p.label.padEnd(4)} ${p.subject.slice(0, 10)}…  委任 ${p.delegated.join(", ")}${kept.length ? ` / 本人が保持 ${kept.join(", ")}` : ""}`,
   );
 }
-console.log(`  Aoi の social-post は ${LAPSE_SECONDS} 秒で満了する（本人の画面＝Aoi）`);
+console.log(`  Aoi の campaign-social は ${LAPSE_SECONDS} 秒で満了する（本人の画面＝Aoi）`);
 console.log(`\nチェーン側の役割は別に戻す: bun run scripts/ens-role.ts grant`);

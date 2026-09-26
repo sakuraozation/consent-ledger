@@ -17,6 +17,20 @@ She calls her agency — the people whose job is exactly this. **They cannot do 
 either.** Nobody can see it, so nobody can stop it. That is the state before anything we
 build.
 
+## 1b. Two different things got bundled together
+
+What she agreed to was a shoot, and the shoot's images being published — print, social, a
+lookbook. That is what an agency has always handled, and an enquiry about any of it goes to
+them, correctly.
+
+What happened to her scan is not that. Nothing was published; something was *generated*. It
+was not part of the deliverables, it was not priced, and in most contracts of this kind it is
+not mentioned at all. It is a use that arrived after the desk was built.
+
+So the two belong to different people. The shoot's outputs stay with her agency. Anything
+generated from her body data stays hers until she says otherwise — including who to ask, and
+who gets paid.
+
 ## 2. The agency puts the terms they already agreed onto the record
 
 They are already her representatives: they take the calls, arrange the castings, negotiate

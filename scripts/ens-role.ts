@@ -38,8 +38,10 @@ if (action !== "grant" && action !== "withdraw") {
   console.error("使い方: bun run scripts/ens-role.ts grant|withdraw [scope ...]");
   process.exit(1);
 }
-// 既定はデモで委ねている2つ。nsfw は渡さない（渡していないことを見せるため）。
-const scopes = process.argv.length > 3 ? process.argv.slice(3) : ["ad-image", "social-post"];
+// 既定は従来の仕事の3つ。生成 AI の側（ai-generation 等）は渡さない
+// ＝「事務所がまだコントロールしていない領域」を渡していない状態から始める。
+const scopes =
+  process.argv.length > 3 ? process.argv.slice(3) : ["campaign-print", "campaign-social", "lookbook"];
 const personKey = await devVar("EVM_PRIVATE_KEY");
 const agencyKey = await devVar("AGENCY_PRIVATE_KEY");
 if (!personKey?.startsWith("0x") || !agencyKey?.startsWith("0x")) {
