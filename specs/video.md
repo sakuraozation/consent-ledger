@@ -19,7 +19,20 @@ granted.
 
 ---
 
-## 0:00–0:35 · Where this came from (no screen — slide or plain背景)
+## 0:00–0:35 · Where this came from
+
+*On screen: one still card, large type, nothing else. Not a document — three lines that the
+voice does not have to read out:*
+
+```
+An advertisement using her body.
+Not her face. Her body.
+Nobody asked.
+```
+
+*Do not put the problem statement, the architecture, or anything from `docs/` on screen. A
+judge who is reading cannot listen, and the written argument is the README's job. One card is
+enough to stop the opening from being a blank screen.*
 
 > A model I know found an advertisement using her body. Not her face — her body, her posture,
 > her proportions. It came from a scan taken during a normal, paid shoot. Nobody asked her
@@ -149,6 +162,21 @@ Close on the four outcomes.
 > not need one. That is the next question, not a missing feature.
 
 ---
+
+## What is on screen, and what is not
+
+- **No webcam.** The rules ask for my own voice, not my face, and the screens deliberately
+  carry no photographs of anyone — putting my own face in would sit oddly against that. Screen
+  recording plus narration.
+- **No editor, no source files.** Nobody needs to watch code being read. What has to be
+  visible is that it runs. Anyone who wants the code has the README, which points at the exact
+  files.
+- **The terminal appears exactly once**, for `scripts/ens-role.ts withdraw campaign-print`.
+  That one is worth showing because the command and its transaction are the evidence that the
+  refusal came from the chain and not from my database.
+- **No documents on screen** beyond the single opening card. Reading and listening compete;
+  the headings in the README were written so that someone skimming gets the argument without
+  the video.
 
 ## Recording notes
 
