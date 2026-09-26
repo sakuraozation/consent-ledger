@@ -1,46 +1,48 @@
 # Customer journey
 
 Three people, one record. Written before the screens, so the screens have something to be
-measured against; revised once the framing changed (the agency is the operator, not the
-adversary), and again once the delegation moved onto ENSv2 (step 2 and step 5 are the two
-places she can feel the difference).
+measured against. Revised twice since: once when the agency turned out to be the operator
+rather than the adversary, and once when the term — not the button — turned out to be the
+thing that ends permission.
 
 ---
 
 ## 1. The scan already happened
 
 A model shoots a campaign. As part of it, she is photographed from many angles — this is
-normal, paid, and agreed. Months later a friend sends her an ad. It is not her face
-exactly, but it is her body, her posture, her proportions. Nobody asked.
+normal, paid, and agreed. Months later a friend sends her an ad. It is not her face exactly,
+but it is her body, her posture, her proportions. Nobody asked.
 
 She calls her agency — the people whose job is exactly this. **They cannot do anything
 either.** Nobody can see it, so nobody can stop it. That is the state before anything we
 build.
 
-## 2. She delegates, and the agency puts the consent on the record
+## 2. The agency puts the terms they already agreed onto the record
 
-First she gives her agency the authority to act — the same thing she already does by
-signing with them, made explicit enough for a machine to honour. Without it they cannot
-issue anything, and nothing they issue is honoured.
+They are already her representatives: they take the calls, arrange the castings, negotiate
+across markets. None of that changes, and none of it is what we build. What we take is the
+one part a contract can hold.
 
-That authority is a role on her name in ENSv2, scoped to the single record that holds her
-consent. The scoping is the point: the agency can write that record and nothing else on the
-name. She does not sign anything or see an address — her page shows it as a state
-(*delegated* / *not delegated*), which is the only part of it she has a decision about.
+First the authority to act is recorded. This is not a new decision she makes — it is the
+representation agreement she already signed, made explicit enough for a machine to honour.
+On ENSv2 it is a role on her name, scoped to the single record that holds her consent: the
+agency can write that record and nothing else on the name.
 
-Then they do the work. The agency already knows the terms — which medium, until when, how.
-Until now that lived in a contract nobody can query at the speed generation happens.
+Then the terms. The agency knows them — which medium, which market, **until when**. Until
+now that lived in a contract nobody could query at the speed generation happens.
 
-They create a consent: **who**, **what use**, **until when**. The person is identified by
-a World ID pairwise subject, so the record says *this human*, not *this name*. No images
-and no scan data are stored.
+They create the record: **who**, **what use**, **until when**. The period is not an
+afterthought; it is the part that does the work. The person is identified by a World ID
+pairwise subject, so the record says *this human*, not *this name*. No images and no scan
+data are stored.
 
-> *Screen: agency dashboard — roster, scope, expiry, status.*
+> *Screen: agency dashboard — who is represented, the scope and term of each engagement,
+> what is live and what has lapsed.*
 
 ## 3. The generating side asks first
 
-A brand's pipeline is about to produce an image from that body data. Before it generates,
-it asks:
+A brand's pipeline is about to produce an image from that body data. Before it generates, it
+asks:
 
 ```
 POST /check  { subject, scope }
@@ -48,59 +50,84 @@ POST /check  { subject, scope }
 
 Four things can come back, each with a reason written to be shown to a human unchanged:
 
-- **allow** — in scope, not expired, not revoked
+- **allow** — in scope, inside the term
 - **deny** — the use was never granted. Nobody is asked; there is nothing to ask about
-- **ask** — no record yet, or the record expired. Expiry does not mean she said no; it
-  means nobody has asked her lately
-- **revoked** — she took it back
+- **ask** — no record yet, or the term has run out. A lapsed term does not mean she said no;
+  it means nobody has renewed it
+- **revoked** — the permission was ended
 
 > *Screen: the requesting side — one button, and the verdict with its reason.*
 
 ## 4. When the answer is `ask`, a human decides
 
-The pipeline stops and asks. It shows a short code. She approves on her phone — a
-separate device, a separate session, nothing to install for the pipeline.
+The pipeline stops and asks. It shows a short code. She approves on her phone — a separate
+device, a separate session, nothing to install for the pipeline.
 
 Her identity is verified **on our server** against the issuer's keys. Until that passes,
-nothing is approved. The subject comes back the same as last time, which is how we know
-it is the same person and not someone borrowing her account.
+nothing is approved. The subject comes back the same as last time, which is how we know it
+is the same person and not someone borrowing her account.
 
 **While it waits, the generation does not happen.** If she does not answer within the
-deadline, the request expires and the generation still does not happen. That is a
-decision, not an oversight: an agent that proceeds on silence is not asking.
+deadline, the request expires and the generation still does not happen. That is a decision,
+not an oversight: an agent that proceeds on silence is not asking.
 
-> *Screen: the waiting state — the code, the countdown, and what happens if nobody
-> answers.*
+> *Screen: the waiting state — the code, the countdown, and what happens if nobody answers.*
 
-## 5. Something is wrong, and it stops
+## 5. Permission ends — and the ordinary way is that it runs out
 
-Usually this is a message: she tells her agency, and they press **Stop this use**. Seconds later the
-same request from the same pipeline comes back **refused, with the reason**. That is the
-daily path, and it is the one that has never existed before — until now neither of them
-could stop anything.
+Most permissions here are never revoked by anyone. **The term passes and the answer
+changes.** No message, no button, nobody deciding anything: the same request that was
+allowed last month comes back `ask`, because a deal ended the way deals end. Renewal is the
+event that needs a person, not termination.
 
-> *Screen: the agency revokes, then the same request refused.*
+> *Screen: a live engagement and a lapsed one side by side, and the same request answered
+> differently.*
 
-The rarer path is hers alone. **Take back all authority** ends the delegation, and
-**every consent issued under it stops at once** — the agency cannot undo
-that. She will almost never use it. It is the reason the arrangement is worth trusting.
+When a deal genuinely ends early, that is the agency's to do — they are the party to it. She
+tells them, they press **Stop this use**, and seconds later the same request from the same
+pipeline comes back **refused, with the reason**. Her route to this is a phone call, which is
+what representation is; putting the button in front of her instead would be pretending the
+relationship works differently than it does.
 
-Because that authority is the on-chain role, the withdrawal holds even if this service is
-wrong about it, or gone. Taking the role away needs nobody's cooperation, and afterwards a
-request that our database would still have allowed comes back **refused, naming the chain as
-the reason**. Roughly half a second, measured.
+> *Screen: the agency ends one use, then the same request refused.*
+
+## 6. The exception: something happened that the contract does not cover
+
+A scan leaks. Something is generated that no agreement covers. Someone acts as her. These
+are not deal terms running their course — they are the cases a term cannot anticipate, and
+they are the only place the person acts directly.
+
+**Take back all authority** ends the delegation itself, and every consent issued under it
+stops at once. It requires proof that a real human — the same human as before — is doing it.
+That check is proportionate precisely *because* this action overrides an agreement rather
+than following one. Refusing to verify withdraws nothing; closing the window changes nothing.
+
+Because that authority is the on-chain role, it holds even if this service is wrong about it,
+or gone. Removing the role needs nobody's cooperation, and afterwards a request our database
+would still have allowed comes back **refused, naming the chain as the reason**. Roughly
+half a second, measured.
 
 > *Screen: Take back all authority — confirmed with Proof of Human — then every request
 > under it refused.*
 
-The two labels are deliberately named after **what they end**, not after the verb. "Revoke"
-and "Withdraw" sat next to each other and could not be told apart at a glance: the first
-reader of the screens asked what the difference was, which is the same question a judge
-would have had.
+She will almost certainly never use this. It is the reason the arrangement is worth
+trusting, and it is presented as an exception rather than a control.
 
-Ten seconds, either way, no explanation needed.
+### If she just disagrees with the terms
 
-## 6. When something breaks, nothing is generated
+That is not an override, and it is not something a product should settle. Her page carries
+**Ask to change this** to a person and stops there. Negotiation is the half we deliberately
+left with the humans, and building messaging and counter-offers here would be a second
+product.
+
+## 7. Two words, chosen for what they end
+
+"Revoke" and "Withdraw" sat next to each other and could not be told apart at a glance — the
+first person to use the screens asked what the difference was, which is the question a judge
+would have had. So the labels name their scope: **Stop this use** ends one use, **Take back
+all authority** ends everything under the delegation.
+
+## 8. When something breaks, nothing is generated
 
 The failure we designed for is not a crash, it is a *silent yes*. So every way this can fail
 falls the same direction:
@@ -120,12 +147,13 @@ log makes every verdict visible after the fact.
 
 ## What each person leaves with
 
-- **The agency**: the ability to act at all — say what the data is for, stop a misuse the
-  day they hear about it, and answer a brand that asks for proof.
-- **The person**: someone handling it, and one thing she can press herself if she ever
-  needs to.
+- **The agency**: the terms they already negotiated, in a form that can answer a machine at
+  the speed generation happens — without giving up any of the work that makes them an
+  agency.
+- **The person**: sight of what she is tied to and until when, a way to raise it with a
+  person, and one exceptional action that is genuinely hers.
 - **The generating side**: a yes or no before they spend, with a reason they can act on.
 
-What made this hard was never consent. It was that writing precise terms — duration,
-scope, what counts as reuse — cost more than the vagueness did, until generation got fast
-enough to make vagueness expensive.
+What made this hard was never consent. It was that writing precise terms — duration, scope,
+what counts as reuse — cost more than the vagueness did, until generation got fast enough to
+make vagueness expensive.
