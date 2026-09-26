@@ -2,7 +2,7 @@
 import { Hono } from "hono";
 import { getPendingByRequest, pendingCounts, pendingFor, pollApproval, startApproval, sweep } from "./approval";
 import { readChainDelegation } from "./chain";
-import { activeFor, grant as grantDelegation, listFor, removeScope, roster } from "./delegation";
+import { activeFor, listFor, removeScope, roster } from "./delegation";
 import { bySubject, check, put, record, revoke, summaryFor, usesBySubject } from "./ledger";
 import { Boundary, ChainPanel, EngagementCard, Page, ScopeGrid, UseLog, VerdictBox } from "./ui";
 import { type Proof, REQUIRED_LEVEL, verifyProof } from "./worldid";
@@ -429,23 +429,10 @@ screens.get("/me", async (c) => {
           <div class="row">
             <strong class="dim">Nobody is on record for you</strong>
           </div>
-          <div class="meta">Until they are, nothing they agree to will be honoured.</div>
-          <form method="post" action="/me/delegations" style="display:block;margin-top:.75rem">
-            <input type="hidden" name="subject" value={subject} />
-            <div class="meta" style="margin-bottom:.4rem">
-              Choose what they may handle. The shoot's images are the usual answer; what is generated from
-              your body data does not have to be.
-            </div>
-            {SCOPES.map((sc) => (
-              <label class="meta" style="margin-right:1rem">
-                {/* 既定は従来の仕事だけ＝生成 AI の側は渡さないところから始める */}
-                <input type="checkbox" name={sc} checked={AGENCY_SIDE.includes(sc)} /> {sc}
-              </label>
-            ))}
-            <p style="margin:.6rem 0 0">
-              <button type="submit">Put my agency on record</button>
-            </p>
-          </form>
+          <div class="meta">
+            Until they are, nothing they agree to will be honoured. Putting them on record happens when you
+            sign with them, not here.
+          </div>
         </div>
       ) : null}
 
@@ -513,18 +500,6 @@ screens.post("/me/requests", async (c) => {
     .bind(crypto.randomUUID(), subject, c.req.query("consent") ?? null, Date.now())
     .run();
   return c.redirect(`/me?subject=${encodeURIComponent(subject)}&asked=1`);
-});
-
-/** 委任する。実運用では World ID の承認を通す（デモでは1クリック）。 */
-screens.post("/me/delegations", async (c) => {
-  const f = await form(c);
-  const picked = SCOPES.filter((sc) => f.get(sc) !== null);
-  await grantDelegation(c.env.DB, {
-    subject: String(f.get("subject") ?? c.env.DEMO_SUBJECT ?? FALLBACK_SUBJECT),
-    scopes: picked.length > 0 ? [...picked] : ["ad-image"],
-    custodian: "Tokyo Model Agency",
-  });
-  return c.redirect("/me");
 });
 
 /**

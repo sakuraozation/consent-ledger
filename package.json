@@ -4,10 +4,6 @@
   "private": true,
   "type": "module",
   "dependencies": {
-    "@x402/core": "^2.26.0",
-    "@x402/evm": "^2.26.0",
-    "@x402/fetch": "^2.26.0",
-    "@x402/hono": "^2.26.0",
     "hono": "^4.12.32",
     "jose": "^6.2.12",
     "viem": "^2.0.0"

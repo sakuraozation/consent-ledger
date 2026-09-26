@@ -1,27 +1,15 @@
 // 照会の口。生成する側（エージェント）はここだけ見ればよい。
+//
+// 09-26 に削った口: 許諾の作成・取り消し・一覧（JSON）と使用ログ。作成の口は
+// **委任の範囲を見ていなかった**＝画面が禁じていることを API が許していた。一覧は
+// 全員分が誰でも引けた。どれも画面側に同じ操作があり、こちらが正本ではない。
 import { Hono } from "hono";
 import { getPendingByRequest, pollApproval, startApproval, sweep } from "./approval";
 import { readChainDelegation } from "./chain";
-import { type Consent, all, check, put, record, recordOutcome, revoke, usesBySubject } from "./ledger";
+import { check, put, record, recordOutcome } from "./ledger";
 
 export const api = new Hono<{ Bindings: Env }>();
 
-
-/** 許諾を置く。実運用では事務所の画面から、デモでは直接叩く。 */
-api.post("/consents", async (c) => {
-  const b = (await c.req.json().catch(() => null)) as Partial<Consent> | null;
-  if (!b?.subject || !Array.isArray(b.scopes) || b.scopes.length === 0) {
-    return c.json({ error: "subject and scopes are required" }, 400);
-  }
-  const consent = await put(c.env.DB, {
-    id: b.id ?? crypto.randomUUID(),
-    subject: b.subject,
-    scopes: b.scopes,
-    expiresAt: typeof b.expiresAt === "number" ? b.expiresAt : Date.now() + 60_000, // デモ既定は60秒
-    custodian: b.custodian,
-  });
-  return c.json(consent, 201);
-});
 
 /** 生成の前にここを呼ぶ。4状態を理由つきで返す。 */
 api.post("/check", async (c) => {
@@ -42,18 +30,6 @@ api.post("/check", async (c) => {
   // allow 以外も 200 で返す＝呼ぶ側が判定を読む。HTTP のエラーにしない。
   return c.json({ ...verdict, chain: chain.configured ? { ok: chain.ok, granted: chain.granted, name: chain.name, key: chain.key, error: chain.error } : undefined });
 });
-
-/** 本人が取り消す。窓口（事務所）を通さずに効く＝ここが設計の芯。 */
-api.post("/consents/:id/revoke", async (c) => {
-  const found = await revoke(c.env.DB, c.req.param("id"));
-  if (!found) return c.json({ error: "not found" }, 404);
-  return c.json(found);
-});
-
-api.get("/consents", async (c) => c.json(await all(c.env.DB)));
-
-/** 本人が「いつ・誰に・どう使われたか」を見る。 */
-api.get("/uses/:subject", async (c) => c.json(await usesBySubject(c.env.DB, c.req.param("subject"))));
 
 /** 「人に聞く」を開始する。check が ask を返した時に呼ぶ。人間に見せるコードを返す。 */
 api.post("/approvals", async (c) => {

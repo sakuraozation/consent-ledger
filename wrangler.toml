@@ -11,13 +11,6 @@ compatibility_flags = ["nodejs_compat"]
 enabled = true
 
 [vars]
-# 受取アドレス（testnet・自分の EVM アドレスに置き換える）。secret ではないので vars でよい。
-PAY_TO = "0x397E6b834ec3ED0f3e6eaf5C6CF89c70D7962111"
-# x402 v2 の公開 facilitator（Base Sepolia を無料で検証・決済する）
-FACILITATOR_URL = "https://x402.org/facilitator"
-# CAIP-2。eip155:84532 = Base Sepolia
-NETWORK = "eip155:84532"
-
 # World ID（IDKit）。app_id と action は公開値なので vars に置く。
 # client secret（for Agents）だけ wrangler secret put で入れる。
 WORLD_APP_ID = "app_02d24f47fdbf90afd00f47d9574b7068"

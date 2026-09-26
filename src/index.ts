@@ -1,36 +1,13 @@
-import { HTTPFacilitatorClient } from "@x402/core/server";
-import { ExactEvmScheme } from "@x402/evm/exact/server";
-import { paymentMiddleware, x402ResourceServer } from "@x402/hono";
+// 入口。判定は src/ledger.ts、画面は src/screens.tsx。
+//
+// x402（HTTP 402 でエージェントに払わせる配線）は 09-26 に取り除いた。動くことは
+// 確認したうえでの削除＝README に「支払いは接続していない」と書いてあるのに 402 を
+// 返す口が生きている状態は、言っていないものが動いていることになる。受取先を
+// リクエストごとに変えられず、本人に直接払うには鍵を持たせる必要があり、それは
+// この設計が意図的に避けた判断と衝突する（理由は README・実測は FEEDBACK.md）。
 import { Hono } from "hono";
 import { api } from "./api";
 import { screens } from "./screens";
-import { worldId } from "./worldid";
-
-// Workers では module スコープで env を読めないので、最初のリクエストで組み立てて使い回す。
-type PaidMiddleware = ReturnType<typeof paymentMiddleware>;
-let paid: PaidMiddleware | undefined;
-
-function buildPaid(env: Env): PaidMiddleware {
-  const network = env.NETWORK;
-  const server = new x402ResourceServer(
-    new HTTPFacilitatorClient({ url: env.FACILITATOR_URL }),
-  ).register(network, new ExactEvmScheme());
-  return paymentMiddleware(
-    {
-      "GET /paid": {
-        accepts: {
-          scheme: "exact",
-          price: "$0.001",
-          network,
-          payTo: env.PAY_TO,
-        },
-        description: "hello, paid by an agent",
-        mimeType: "application/json",
-      },
-    },
-    server,
-  );
-}
 
 const app = new Hono<{ Bindings: Env }>();
 
@@ -39,12 +16,11 @@ app.get("/api", (c) =>
     [
       "consent-ledger — API",
       "POST /check                  -> allow | deny | ask | revoked (with a reason)",
-      "POST /consents               -> put a consent on the record",
-      "POST /consents/:id/revoke    -> the person takes it back",
-      "POST /approvals              -> ask a human (World ID for Agents, device flow)",
+      "POST /approvals              -> ask the person (World ID for Agents, device flow)",
       "GET  /approvals/:requestId   -> waiting | approved | denied | expired",
+      "GET  /chain                  -> the delegation as it stands on ENSv2",
       "",
-      "Screens: /generate  /me  /agency",
+      "Screens: /agency  /me  /generate",
     ].join("\n"),
   ),
 );
@@ -74,14 +50,6 @@ app.onError((err, c) => {
 
 app.notFound((c) => c.json({ error: "not_found", path: c.req.path }, 404));
 
-app.use("/paid", async (c, next) => {
-  paid ??= buildPaid(c.env);
-  return paid(c, next);
-});
-
-app.get("/paid", (c) => c.json({ hello: "paid", at: new Date().toISOString() }));
-
-app.route("/", worldId);
 app.route("/", api);
 app.route("/", screens);
 

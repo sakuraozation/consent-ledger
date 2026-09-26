@@ -132,7 +132,7 @@ exists to stop, so the RPC being down costs a human approval, not a silent yes.
 | What | Where |
 |---|---|
 | **Where each half earns its place** — ENS holds standing authority per scope; World answers for the scopes nobody was given | [`src/ledger.ts`](src/ledger.ts) — `check`: a withheld scope returns `ask`, a scope the agency holds returns `deny` |
-| **World ID / IDKit** — the person's own action is gated on Proof of Human, verified server-side | [`src/worldid.ts`](src/worldid.ts) — `verifyProof`; the screen is `GET /me/delegations/:id/withdraw` in [`src/screens.tsx`](src/screens.tsx) |
+| **World ID / IDKit** — the person's own action is gated on Proof of Human, verified server-side | [`src/worldid.ts`](src/worldid.ts) — `verifyProof`; the screen is `GET /me/scopes/:scope/withdraw` in [`src/screens.tsx`](src/screens.tsx) |
 | **World ID for Agents** — device flow, ID token verified server-side against the issuer's JWKS | [`src/approval.ts`](src/approval.ts) — `startApproval`, `pollApproval` (the `jwtVerify` call is the line that matters) |
 | **ENSv2** — commit/reveal registration against the ETHRegistrar | [`scripts/ens-register.ts`](scripts/ens-register.ts) |
 | **ENSv2 Enhanced Access Control** — delegation as a per-key role, granted and revoked | [`scripts/ens-delegate.ts`](scripts/ens-delegate.ts) — `authorizeTextRoles`, and the three calls that must revert |
@@ -220,15 +220,20 @@ Worth saying plainly, because the gaps are structural rather than unfinished wor
   fact, which is weaker than preventing it.
 - **The record is not resolvable through `UpgradableUniversalResolverProxy`** on this
   deployment — it returns the zero address, so we read the registry directly.
-- **Payment is not connected.** x402 is wired on a separate route and returns 402, but the
-  payee cannot vary per request, and paying her directly would mean giving her a key — which
-  contradicts a decision this design makes on purpose. That is the next question, not a
-  missing feature.
+- **Payment is not connected, and the wiring has been removed.** x402 worked here — one
+  middleware, a 402, a facilitator — and I took it out before submitting. Two reasons. The
+  payee cannot vary per request, so I could not send the money where the argument says it
+  should go: to her, for a use nobody was ever given. And paying her directly means giving her
+  a key, which contradicts a decision this design makes on purpose. Leaving a live 402 on an
+  unrelated route while the README says payment is not connected would mean something is
+  running that nothing here claims. The measurements are in [`FEEDBACK.md`](FEEDBACK.md); this
+  is a considered no, not a gap.
 
 ## Try it
 
-> Starting state is set by [`scripts/reset-demo.ts`](scripts/reset-demo.ts): one live
-> delegation for `model-a` and one valid consent, with an empty usage log. Run it again
+> Starting state is set by [`scripts/reset-demo.ts`](scripts/reset-demo.ts): three people with
+> different delegations, the shoot's scopes handed over and the generative ones withheld, one
+> engagement running to the end of the year and one lapsing in ninety seconds. Run it again
 > (plus `scripts/ens-role.ts grant`) to put the demo back.
 
 1. [`/agency`](https://consent-ledger.yoshitatsu.workers.dev/agency) — grant a consent (60 seconds, so expiry is visible in real time)

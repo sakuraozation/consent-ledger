@@ -141,6 +141,10 @@ asking to generate is checked against a permission that lives under a name.
 
 ## Curvegrid — Best AI Agent Project ($1,000)  ← held in reserve
 
+> Note (09-26): the x402 wiring was removed from the repo before submission. It is not part of
+> any prize we are claiming, and a live 402 on an unrelated route contradicted the README's
+> statement that payment is not connected. The measurements stay in `FEEDBACK.md`.
+
 The brief: *"What happens when AI agents can understand blockchain activity and take
 action on-chain?"* Among the listed ideas: **Policy-Aware Transaction Agent** — "propose or
 execute transactions while respecting rules such as spending limits, approved
