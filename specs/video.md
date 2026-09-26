@@ -98,6 +98,12 @@ Pick Aoi + `ai-generation` → `ask`. Press **Ask the human**, show the code.
 > Generating from her body data: nobody was ever given this, so there is no desk. The request
 > goes to her.
 
+Before approving, switch to her screen — the request is there with a countdown — and then to
+the agency's roster, where it says *1 waiting on them*.
+
+> Three people can see it is waiting. Only she can end it. Her agency can see it and ring her
+> — they do not get a button.
+
 Approve it on the phone. Show the verdict flip to `allow`.
 
 > She answered. The reason says she answered it herself — not her agency — and that consent is

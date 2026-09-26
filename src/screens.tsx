@@ -144,9 +144,13 @@ screens.get("/agency", async (c) => {
                 </a>
                 <span>
                   {waiting[d.subject] ? (
-                    <span class="pill ask" style="margin-right:.4rem">
-                      {waiting[d.subject]} waiting on them
-                    </span>
+                    <a
+                      href={`/agency/${encodeURIComponent(d.subject)}#waiting`}
+                      class="pill ask"
+                      style="margin-right:.4rem;text-decoration:none"
+                    >
+                      {waiting[d.subject]} waiting on them →
+                    </a>
                   ) : null}
                   <span class={`pill ${sum && sum.live > 0 ? "allow" : "ask"}`}>
                     {sum ? `${sum.live} live` : "—"}
@@ -187,12 +191,14 @@ screens.get("/agency", async (c) => {
 /** モデル1人の詳細。ここが実際の作業面（載せる・早期に終える）。 */
 screens.get("/agency/:subject", async (c) => {
   const subject = c.req.param("subject");
-  const [consents, delegation, requests, chainByScope, uses] = await Promise.all([
+  await sweep(c.env.DB);
+  const [consents, delegation, requests, chainByScope, uses, pending] = await Promise.all([
     bySubject(c.env.DB, subject),
     activeFor(c.env.DB, subject),
     openRequests(c.env.DB),
     rolesByScope(c.env, subject),
     usesBySubject(c.env.DB, subject),
+    pendingFor(c.env.DB, subject),
   ]);
   const now = Date.now();
   const live = consents.filter((x) => x.revokedAt === undefined && x.expiresAt > now);
@@ -230,6 +236,31 @@ screens.get("/agency/:subject", async (c) => {
           </div>
           <div class="meta">Settle the terms on the phone, then change the record here.</div>
         </div>
+      ) : null}
+
+      {pending.length > 0 ? (
+        <>
+          <h2 id="waiting">Someone is waiting on them</h2>
+          <p class="sub">
+            You cannot answer these — the scope was never yours. What you can do is what an agency does:
+            reach them.
+          </p>
+          {pending.map((w) => (
+            <div class="card">
+              <div class="row">
+                <span class="term">{w.scope}</span>
+                <span class="pill ask">
+                  {Math.max(0, Math.round((w.expiresAt - Date.now()) / 1000))}s left
+                </span>
+              </div>
+              <div class="meta">
+                A pipeline asked at {new Date(w.createdAt).toISOString().slice(11, 19)}Z. Nothing is generated
+                while it waits, and if nobody answers it does not happen.
+              </div>
+              <div class="meta dim">code {w.userCode}</div>
+            </div>
+          ))}
+        </>
       ) : null}
 
       <h2>What they delegated to you</h2>
@@ -354,9 +385,13 @@ screens.get("/me", async (c) => {
                 <span class="term">{w.scope}</span>
                 <span class="pill ask">{Math.max(0, Math.round((w.expiresAt - Date.now()) / 1000))}s left</span>
               </div>
-              <div class="meta">
-                Answer on your phone with the code <strong>{w.userCode}</strong> at{" "}
-                <a href="https://sandbox.auth.world.org/device">sandbox.auth.world.org/device</a>
+              <p style="margin:.5rem 0 0">
+                <a href={w.verifyUrl} class="btnlink">
+                  Open it and answer
+                </a>
+              </p>
+              <div class="meta dim">
+                or enter <strong>{w.userCode}</strong> at sandbox.auth.world.org/device
               </div>
             </div>
           ))}

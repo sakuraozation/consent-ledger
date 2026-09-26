@@ -39,6 +39,7 @@ type Row = {
   subject: string;
   scope: string;
   verifier: string; // device_code をここに持つ
+  verify_url: string | null;
   created_at: number;
   expires_at: number;
   result: string | null;
@@ -51,7 +52,8 @@ const toPending = (r: Row): Pending => ({
   scope: r.scope,
   deviceCode: r.verifier,
   userCode: r.state,
-  verifyUrl: `${ISSUER}/device`,
+  // コード入りの直リンク（IdP の verification_uri_complete）。無ければ一般の入口。
+  verifyUrl: r.verify_url ?? `${ISSUER}/device`,
   createdAt: r.created_at,
   expiresAt: r.expires_at,
   result: (r.result as Pending["result"]) ?? undefined,
@@ -109,9 +111,9 @@ export async function startApproval(
 
   await db
     .prepare(
-      "INSERT INTO approvals (state, request_id, subject, scope, verifier, created_at, expires_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+      "INSERT INTO approvals (state, request_id, subject, scope, verifier, verify_url, created_at, expires_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
     )
-    .bind(p.userCode, p.requestId, p.subject, p.scope, p.deviceCode, now, p.expiresAt)
+    .bind(p.userCode, p.requestId, p.subject, p.scope, p.deviceCode, p.verifyUrl, now, p.expiresAt)
     .run();
   return p;
 }

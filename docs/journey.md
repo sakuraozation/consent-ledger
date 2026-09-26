@@ -99,6 +99,12 @@ not an oversight: an agent that proceeds on silence is not asking.
 
 > *Screen: the waiting state — the code, the countdown, and what happens if nobody answers.*
 
+Three people can see that it is waiting, and only one of them can end it. Her own page shows
+it with a link that opens the approval directly — no code to type. Her agency sees it too, on
+her page in their roster, because a brand waiting on their talent is their problem to chase.
+**What they do not get is a button.** They can ring her; they cannot answer for her. That is
+the same line as everywhere else, drawn at the moment it would be most tempting to cross.
+
 ## 5. Permission ends — and the ordinary way is that it runs out
 
 Most permissions here are never revoked by anyone. **The term passes and the answer
