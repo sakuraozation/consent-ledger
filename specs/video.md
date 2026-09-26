@@ -14,8 +14,10 @@ bun run scripts/reset-demo.ts && bun run scripts/ens-role.ts grant
 ```
 
 That gives: Aoi with the shoot's scopes delegated and everything generative withheld, one
-engagement running to the end of the year, one lapsing in 90 seconds, and the on-chain roles
-granted.
+engagement running to the end of the year, one short one, and the on-chain roles granted.
+
+The short one expires ninety seconds after the reset, so treat it as *already lapsed* by the
+time you are filming. The lapse itself is created on camera at 1:35.
 
 ---
 
@@ -87,9 +89,15 @@ Point at Aoi's row: shoot scopes delegated, generative scopes withheld.
 > On her page, the term is the first thing you see, because the term is what does the work.
 > Most of these end by running out. Nobody presses anything.
 
-Show the engagement lapsing (the 90-second one), then:
+**Do not rely on the seeded 90-second engagement for this beat** — it starts counting the moment
+`reset-demo.ts` runs, so by the time you reach 1:35 it is already gone. Instead create one here,
+on camera: pick a scope, choose *90 seconds*, press **Record it**. Then carry on talking through
+the next section and come back to it.
 
 > That one just expired. Same request, different answer, and no human involved.
+
+The seeded lapsed engagement is still useful in the list above — it is what a term that ran out
+looks like once it is over.
 
 Then press **Stop this use** on the live one.
 
