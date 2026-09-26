@@ -4,7 +4,7 @@ import { getPendingByRequest, pollApproval, startApproval, sweep } from "./appro
 import { readChainDelegation } from "./chain";
 import { activeFor, grant as grantDelegation, listFor, withdraw } from "./delegation";
 import { all, bySubject, check, put, record, revoke, usesBySubject } from "./ledger";
-import { ChainPanel, ConsentCard, Page, UseLog, VerdictBox } from "./ui";
+import { Boundary, ChainPanel, EngagementCard, Page, UseLog, VerdictBox } from "./ui";
 import { type Proof, REQUIRED_LEVEL, verifyProof } from "./worldid";
 
 export const screens = new Hono<{ Bindings: Env }>();
@@ -22,44 +22,118 @@ const DEMO_SUBJECT = "model-a";
 
 screens.get("/", (c) => c.redirect("/generate"));
 
-/** 事務所の画面。所属の許諾・期限・取り消しを一覧する。操作はするが、権限は持たない。 */
+/** 期間の選択を期日にする。契約の期間は月単位・デモ用の90秒だけ別扱い。 */
+const termToExpiry = (term: string): number => {
+  if (term === "demo") return Date.now() + 90_000;
+  if (term === "quarter") return Date.now() + 90 * 86_400_000;
+  return Date.UTC(2026, 11, 31, 23, 59, 59);
+};
+
+type ChangeRequest = { id: string; subject: string; consentId?: string; at: number };
+
+/** まだ電話していない申し出。会話は持たない＝1行が立つだけ。 */
+const openRequests = async (db: D1Database): Promise<ChangeRequest[]> => {
+  const { results } = await db
+    .prepare("SELECT id, subject, consent_id, at FROM change_requests WHERE handled_at IS NULL ORDER BY at DESC")
+    .all<{ id: string; subject: string; consent_id: string | null; at: number }>();
+  return results.map((r) => ({ id: r.id, subject: r.subject, consentId: r.consent_id ?? undefined, at: r.at }));
+};
+
+/**
+ * 事務所の画面。**扱うのは権利だけ**——営業・調整・交渉は彼らの仕事のまま
+ * （docs/intents.md 冒頭の分割表）。だからここに連絡機能を作らない。
+ */
 screens.get("/agency", async (c) => {
-  const [consents, delegation] = await Promise.all([all(c.env.DB), activeFor(c.env.DB, DEMO_SUBJECT)]);
+  const [consents, delegation, requests] = await Promise.all([
+    all(c.env.DB),
+    activeFor(c.env.DB, DEMO_SUBJECT),
+    openRequests(c.env.DB),
+  ]);
+  const now = Date.now();
+  const live = consents.filter((x) => x.revokedAt === undefined && x.expiresAt > now);
+  const done = consents.filter((x) => !(x.revokedAt === undefined && x.expiresAt > now));
   return c.html(
-    <Page title="Agency — protect your roster" here="agency">
-      <h1>Protect your roster</h1>
-      <p class="sub">
-        Your talent cannot police this themselves — that is why you represent them. Here you can say what
-        their body data may be used for, and stop a use the moment you hear about it.
-      </p>
+    <Page title="Agency — the rights you already agreed" here="agency">
+      <h1>The terms you already agreed, in a form a machine can answer with</h1>
+      <Boundary
+        holds="This page holds rights: what may be used, in what scope, until when."
+        stays="Bookings, casting, scheduling and the negotiation stay yours. Nothing here replaces a phone call."
+      />
       {delegation ? (
         <p class="meta">
-          {DEMO_SUBJECT} has delegated to <strong>{delegation.custodian}</strong> since{" "}
-          {new Date(delegation.grantedAt).toISOString().slice(11, 19)}Z. You act on their behalf. They can
-          withdraw this at any time, and you cannot stop that — which is what makes the arrangement worth
-          trusting.
+          You act for <strong>{DEMO_SUBJECT}</strong> under the representation agreement on record since{" "}
+          {new Date(delegation.grantedAt).toISOString().slice(11, 19)}Z.
         </p>
       ) : (
         <p class="meta deny">
-          No live delegation for {DEMO_SUBJECT}. Until they delegate, you cannot act for them — nothing you
-          issue will be honoured.
+          No authority on record for {DEMO_SUBJECT}. Until there is, nothing you put here will be honoured.
         </p>
       )}
+
+      {requests.length > 0 ? (
+        <>
+          <h2>They asked you to look at something</h2>
+          <p class="sub">
+            Terms are settled between people. This only tells you to pick up the phone — there is no message
+            to read here and no reply to send.
+          </p>
+          {requests.map((r) => (
+            <div class="card">
+              <div class="row">
+                <strong>{r.subject} asked about an engagement</strong>
+                <form method="post" action={`/agency/requests/${r.id}/handled`}>
+                  <button type="submit" class="ghost">
+                    I called them
+                  </button>
+                </form>
+              </div>
+              <div class="meta">
+                {new Date(r.at).toISOString().slice(11, 19)}Z
+                {r.consentId ? ` · engagement ${r.consentId.slice(0, 8)}` : ""}
+              </div>
+            </div>
+          ))}
+        </>
+      ) : null}
+
+      <h2>Put an engagement on the record</h2>
       <form method="post" action="/agency/consents">
-        <input type="text" name="subject" value={DEMO_SUBJECT} aria-label="subject" />{" "}
+        <input type="text" name="subject" value={DEMO_SUBJECT} aria-label="who" />{" "}
         <select name="scope" aria-label="scope">
           <option value="ad-image">ad-image</option>
           <option value="social-post">social-post</option>
           <option value="lookbook">lookbook</option>
         </select>{" "}
-        <button type="submit">Grant for 60s</button>
+        <select name="term" aria-label="term">
+          <option value="year">until 31 Dec 2026</option>
+          <option value="quarter">for 3 months</option>
+          <option value="demo">90 seconds — to watch a term lapse</option>
+        </select>{" "}
+        <button type="submit">Record it</button>
       </form>
-      <h2>On the record</h2>
-      {consents.length === 0 ? (
-        <p class="dim">Nothing yet.</p>
+      <p class="meta dim">
+        The period is the part that does the work. Most engagements end by running out, not by anyone
+        pressing anything.
+      </p>
+
+      <h2>Live</h2>
+      {live.length === 0 ? (
+        <p class="dim">Nothing is live.</p>
       ) : (
-        consents.map((x) => <ConsentCard c={x} revocable revokeAction={`/agency/${x.id}/revoke`} />)
+        live.map((x) => (
+          <EngagementCard
+            c={x}
+            action={{ label: "Stop this use", href: `/agency/${x.id}/revoke`, method: "post", ghost: true }}
+          />
+        ))
       )}
+      <p class="meta dim">
+        Stop this use is for a deal that genuinely ends early. It is yours to press because you are the
+        party to it.
+      </p>
+
+      <h2>Lapsed and ended</h2>
+      {done.length === 0 ? <p class="dim">Nothing yet.</p> : done.map((x) => <EngagementCard c={x} />)}
     </Page>,
   );
 });
@@ -68,16 +142,24 @@ screens.post("/agency/consents", async (c) => {
   const f = await form(c);
   const subject = String(f.get("subject") ?? DEMO_SUBJECT);
   const delegation = await activeFor(c.env.DB, subject);
-  // 委任が無ければ事務所は発行できない。ここが権限の線。
+  // 権限が記録されていなければ事務所は載せられない。ここが権利の線。
   if (!delegation) return c.redirect("/agency");
   await put(c.env.DB, {
     id: crypto.randomUUID(),
     subject,
     scopes: [String(f.get("scope") ?? "ad-image")],
-    expiresAt: Date.now() + 60_000,
+    expiresAt: termToExpiry(String(f.get("term") ?? "year")),
     custodian: delegation.custodian,
     delegationId: delegation.id,
   });
+  return c.redirect("/agency");
+});
+
+/** 電話した、の記録。会話の内容は持たない。 */
+screens.post("/agency/requests/:id/handled", async (c) => {
+  await c.env.DB.prepare("UPDATE change_requests SET handled_at = ? WHERE id = ?")
+    .bind(Date.now(), c.req.param("id"))
+    .run();
   return c.redirect("/agency");
 });
 
@@ -90,6 +172,7 @@ screens.post("/agency/:id/revoke", async (c) => {
 /** 本人の画面。押す物がひとつだけある。窓口を通さずに効く。 */
 screens.get("/me", async (c) => {
   const subject = c.req.query("subject") ?? DEMO_SUBJECT;
+  const asked = c.req.query("asked");
   const [mine, uses, delegations, chain] = await Promise.all([
     bySubject(c.env.DB, subject),
     usesBySubject(c.env.DB, subject),
@@ -98,62 +181,113 @@ screens.get("/me", async (c) => {
   ]);
   const live = delegations.find((d) => d.withdrawnAt === undefined);
   return c.html(
-    <Page title="Your consents" here="me">
-      <h1>What your agency is doing for you</h1>
+    <Page title="What you are tied to" here="me">
+      <h1>What you are tied to, and until when</h1>
       <p class="sub">
-        They handle this so you do not have to. Ask them to stop a use and they will — and if you ever want
-        the authority back, you can take it back yourself, without asking.
+        Your agency handles the deals — the calls, the bookings, the negotiation. This page is so you can
+        see what you are tied to, and until when.
       </p>
-      <h2>Your agency</h2>
+      <Boundary
+        holds="What you see here: the engagements on record, their terms, and every time someone asked to use your data."
+        stays="What stays with people: changing a deal. Ask your agency and they will call you back."
+      />
+
+      <h2>Who acts for you</h2>
       {live ? (
         <div class="card">
           <div class="row">
             <strong>{live.custodian}</strong>
-            <a href={`/me/delegations/${live.id}/withdraw`} class="btnlink">
-              Take back all authority
-            </a>
+            <span class="pill allow">on record</span>
           </div>
           <div class="meta">
-            Acting for you since {new Date(live.grantedAt).toISOString().slice(11, 19)}Z. Stopping one use
-            ends that use. Taking back all authority ends every use they agreed to, at once — and they
-            cannot undo it.
+            Representing you since {new Date(live.grantedAt).toISOString().slice(11, 19)}Z. They put the
+            terms you agreed onto the record; they cannot go outside them.
           </div>
         </div>
       ) : (
         <div class="card">
           <div class="row">
-            <strong class="dim">Nobody is acting for you</strong>
+            <strong class="dim">Nobody is on record for you</strong>
             <form method="post" action="/me/delegations">
               <input type="hidden" name="subject" value={subject} />
-              <button type="submit">Delegate to your agency</button>
+              <button type="submit">Put my agency on record</button>
             </form>
           </div>
-          <div class="meta">Until you delegate, your agency cannot act — and neither can anyone else.</div>
+          <div class="meta">Until they are, nothing they agree to will be honoured.</div>
         </div>
       )}
-      <h2>The same authority, on chain</h2>
-      <p class="sub">
-        Delegation does not only live in this app. On ENSv2 it is a role on your name, scoped to the one
-        record that holds your consent — so the agency can write that and nothing else. Taking the role
-        away is how you take the authority back, and no server has to cooperate for it to hold.
-      </p>
-      <ChainPanel s={chain} />
 
-      <h2>What they have agreed to on your behalf</h2>
-      {mine.length === 0 ? <p class="dim">Nothing on file.</p> : mine.map((x) => <ConsentCard c={x} revocable />)}
-      <h2>Where it was used</h2>
+      <h2>What you are tied to</h2>
       <p class="sub">
-        Every time someone asked to generate from your data, it is here — including the times they were
+        Each one ends when its term ends. Nobody has to do anything for that to happen — which is why the
+        date is the first thing on the card.
+      </p>
+      {mine.length === 0 ? (
+        <p class="dim">Nothing on record.</p>
+      ) : (
+        mine.map((x) => (
+          <EngagementCard
+            c={x}
+            action={
+              x.revokedAt === undefined && x.expiresAt > Date.now()
+                ? {
+                    label: "Ask to change this",
+                    href: `/me/requests?consent=${x.id}&subject=${encodeURIComponent(subject)}`,
+                    method: "post",
+                    ghost: true,
+                  }
+                : undefined
+            }
+          />
+        ))
+      )}
+      {asked ? <p class="meta allow">Your agency has been told to call you.</p> : null}
+
+      <h2>Where your data was used</h2>
+      <p class="sub">
+        Every time someone asked to generate from your data it is here, including the times they were
         refused. This is the part you could never see before.
       </p>
       <UseLog uses={uses} />
+
+      <h2>The same authority, on chain</h2>
+      <p class="sub">
+        Who may speak for you is not only recorded in this app. On ENSv2 it is a role on your name, scoped
+        to the one record that holds your consent — so your agency can write that and nothing else. No
+        server has to cooperate for that limit to hold.
+      </p>
+      <ChainPanel s={chain} />
+
+      {live ? (
+        <div class="exception">
+          <h2>If something happened that no agreement covers</h2>
+          <p class="sub">
+            A leaked scan. Something generated that no deal covers. Someone acting as you. These are not
+            deals running their course, and they are the only time you act directly instead of calling your
+            agency. This ends the authority itself, and every engagement under it stops at once.
+          </p>
+          <p>
+            <a href={`/me/delegations/${live.id}/withdraw`} class="btnlink">
+              Take back all authority
+            </a>
+          </p>
+          <p class="meta dim">
+            We check that a real person is doing this, because it overrides an agreement rather than
+            following one. You will probably never need it.
+          </p>
+        </div>
+      ) : null}
     </Page>,
   );
 });
 
-screens.post("/me/:id/revoke", async (c) => {
-  await revoke(c.env.DB, c.req.param("id"), "subject");
-  return c.redirect("/me");
+/** 申し出。会話は持たない＝事務所の画面に1行立てて、電話に戻す。 */
+screens.post("/me/requests", async (c) => {
+  const subject = c.req.query("subject") ?? DEMO_SUBJECT;
+  await c.env.DB.prepare("INSERT INTO change_requests (id, subject, consent_id, at) VALUES (?, ?, ?, ?)")
+    .bind(crypto.randomUUID(), subject, c.req.query("consent") ?? null, Date.now())
+    .run();
+  return c.redirect(`/me?subject=${encodeURIComponent(subject)}&asked=1`);
 });
 
 /** 委任する。実運用では World ID の承認を通す（デモでは1クリック）。 */

@@ -38,6 +38,18 @@ table.log { width:100%; border-collapse:collapse; margin:.5rem 0 1.5rem; font-si
 table.log td { padding:.35rem .5rem .35rem 0; border-bottom:1px solid var(--line); vertical-align:baseline }
 table.log td:first-child { white-space:nowrap }
 .dim { color:var(--muted) } .strike { text-decoration:line-through; color:var(--muted) }
+/* 状態はラベルで言う（色だけに頼らない） */
+.pill { font-size:.72rem; letter-spacing:.06em; text-transform:uppercase; border:1px solid currentColor;
+  border-radius:999px; padding:.12rem .55rem; white-space:nowrap }
+/* この画面が何を扱い、何を人に残すかの1行。事務所が最初に確かめるのがここ */
+.boundary { border-left:3px solid var(--line); padding:.1rem 0 .1rem .8rem; margin:0 0 1.75rem;
+  color:var(--muted); font-size:.85rem }
+/* 期間を主役にする＝カードの見出しは期日、範囲はその下 */
+.term { font-size:1.05rem; font-weight:600 }
+.term.gone { color:var(--muted) }
+/* 例外は本文から切り離す。一等地に置くと日常の操作に見える */
+.exception { margin-top:3.5rem; border-top:1px solid var(--line); padding-top:1.25rem }
+.exception h2 { margin-top:0 }
 `;
 
 export const Page: FC<PropsWithChildren<{ title: string; here?: string; refresh?: number }>> = ({
@@ -58,14 +70,17 @@ export const Page: FC<PropsWithChildren<{ title: string; here?: string; refresh?
     <body>
       <main>
         <nav>
+          {/* 3人の別々の画面を切り替えていることが一目で分かる書き方にする
+              （前は設定タブに見えた・09-26） */}
+          <span class="dim">Three views:</span>
           <a href="/agency" aria-current={here === "agency" ? "page" : undefined}>
             Agency
           </a>
           <a href="/me" aria-current={here === "me" ? "page" : undefined}>
-            The person
+            Model
           </a>
           <a href="/generate" aria-current={here === "generate" ? "page" : undefined}>
-            Generating side
+            Brand's pipeline
           </a>
         </nav>
         {children}
@@ -76,38 +91,83 @@ export const Page: FC<PropsWithChildren<{ title: string; here?: string; refresh?
 
 const when = (ms: number) => new Date(ms).toISOString().slice(11, 19) + "Z";
 
-export const ConsentCard: FC<{ c: Consent; revocable?: boolean; revokeAction?: string }> = ({
-  c,
-  revocable,
-  revokeAction,
-}) => {
-  const revoked = c.revokedAt !== undefined;
-  const expired = !revoked && c.expiresAt <= Date.now();
+/** 期日の書き方。秒単位の期限（デモ用）と月単位の契約期間を同じ形で出さない。 */
+const untilLabel = (ms: number) => {
+  const d = new Date(ms);
+  const secs = Math.round((ms - Date.now()) / 1000);
+  if (Math.abs(secs) > 86_400) {
+    return d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+  }
+  // 短い期間はデモ用。「あと何秒」を添えないと時刻だけでは読めない
+  const rel = secs > 0 ? `in ${secs}s` : `${-secs}s ago`;
+  return `${d.toISOString().slice(11, 19)}Z (${rel})`;
+};
+
+/**
+ * 1件の engagement。**見出しは期間**で、範囲はその下（docs/intents.md「The term is
+ * the primitive, not the button」）。操作は渡された分だけ出す＝本人の面には渡さない。
+ */
+export const EngagementCard: FC<{
+  c: Consent;
+  action?: { label: string; href: string; method?: "post" | "get"; ghost?: boolean };
+}> = ({ c, action }) => {
+  const stopped = c.revokedAt !== undefined;
+  const lapsed = !stopped && c.expiresAt <= Date.now();
+  const state = stopped ? "stopped" : lapsed ? "lapsed" : "live";
+  const tone = stopped ? "revoked" : lapsed ? "ask" : "allow";
   return (
     <div class="card">
       <div class="row">
-        <strong class={revoked ? "strike" : undefined}>{c.scopes.join(", ")}</strong>
-        {revocable && !revoked ? (
-          <form method="post" action={revokeAction ?? `/me/${c.id}/revoke`}>
-            {/* ラベルは効く範囲で書く。"Revoke" と "Withdraw" は並ぶと区別が付かない
-                （09-26・本人が意味を尋ねた＝審査員も同じところで迷う） */}
-            <button type="submit">Stop this use</button>
-          </form>
-        ) : null}
+        <span class={`term${state === "live" ? "" : " gone"}`}>
+          {stopped
+            ? `Ended ${untilLabel(c.revokedAt as number)}`
+            : lapsed
+              ? `Lapsed ${untilLabel(c.expiresAt)}`
+              : `Until ${untilLabel(c.expiresAt)}`}
+        </span>
+        <span class={`pill ${tone}`}>{state}</span>
       </div>
       <div class="meta">
-        {revoked
-          ? `stopped by the ${c.revokedBy ?? "agency"} at ${when(c.revokedAt as number)} — no longer usable by anyone`
-          : expired
-            ? `expired at ${when(c.expiresAt)} — the next request will ask you again`
-            : `valid until ${when(c.expiresAt)}`}
+        {c.scopes.join(", ")}
+        {c.custodian ? ` · agreed by ${c.custodian}` : ""}
       </div>
       <div class="meta dim">
-        subject {c.subject.slice(0, 12)}… · id {c.id.slice(0, 8)}
+        {stopped
+          ? `ended early by the ${c.revokedBy === "subject" ? "person" : "agency"} — no longer usable by anyone`
+          : lapsed
+            ? "the term ran out; nobody ended it. The next request asks again"
+            : "inside the term — requests in this scope are answered yes"}
+      </div>
+      {action ? (
+        <p style="margin:.75rem 0 0">
+          {action.method === "post" ? (
+            <form method="post" action={action.href}>
+              <button type="submit" class={action.ghost ? "ghost" : undefined}>
+                {action.label}
+              </button>
+            </form>
+          ) : (
+            <a href={action.href} class="btnlink">
+              {action.label}
+            </a>
+          )}
+        </p>
+      ) : null}
+      <div class="meta dim" style="margin-top:.5rem">
+        id {c.id.slice(0, 8)}
       </div>
     </div>
   );
 };
+
+/** ページが何を扱い、何を人に残すかの1行。 */
+export const Boundary: FC<{ holds: string; stays: string }> = ({ holds, stays }) => (
+  <p class="boundary">
+    {holds}
+    <br />
+    {stays}
+  </p>
+);
 
 export const UseLog: FC<{ uses: Use[] }> = ({ uses }) => {
   if (uses.length === 0) return <p class="dim">Nobody has asked for this yet.</p>;
