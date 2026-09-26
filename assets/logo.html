@@ -1,0 +1,28 @@
+<!doctype html>
+<meta charset="utf-8" />
+<title>consent-ledger logo</title>
+<!--
+  ロゴ。**顔は使わない**——同意なく画像を使われたことが題材なので、
+  ここで人の顔を置けば同じことをすることになる。
+  図は製品そのもの: ひとつの名前の下に6つの役割があり、3つは渡され、3つは本人が持つ。
+  512x512 で書き出す（scripts/make-logo.sh）。
+-->
+<style>
+  html, body { margin: 0; width: 512px; height: 512px; background: #0b0b0d; }
+  svg { display: block }
+</style>
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <rect width="512" height="512" rx="112" fill="#0b0b0d" />
+  <g fill="none" stroke-width="26" stroke-linecap="round">
+    <!-- 渡した範囲（撮影の成果物） -->
+    <path d="M 268.6 96.5 A 160 160 0 0 1 387.9 165.4" stroke="#4ade80" />
+    <path d="M 400.4 187.1 A 160 160 0 0 1 400.4 324.9" stroke="#4ade80" />
+    <path d="M 387.9 346.6 A 160 160 0 0 1 268.6 415.5" stroke="#4ade80" />
+    <!-- 本人が持つ範囲（生成利用） -->
+    <path d="M 243.4 415.5 A 160 160 0 0 1 124.1 346.6" stroke="#a78bfa" />
+    <path d="M 111.6 324.9 A 160 160 0 0 1 111.6 187.1" stroke="#a78bfa" />
+    <path d="M 124.1 165.4 A 160 160 0 0 1 243.4 96.5" stroke="#a78bfa" />
+  </g>
+  <!-- 中心＝本人。名前はひとつ -->
+  <circle cx="256" cy="256" r="62" fill="none" stroke="#f4f4f5" stroke-width="20" />
+</svg>
