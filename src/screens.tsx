@@ -303,7 +303,7 @@ screens.post("/agency/consents", async (c) => {
   await put(c.env.DB, {
     id: crypto.randomUUID(),
     subject,
-    scopes: [String(f.get("scope") ?? "ad-image")],
+    scopes: [String(f.get("scope") ?? SCOPES[0])],
     expiresAt: termToExpiry(String(f.get("term") ?? "year")),
     custodian: delegation.custodian,
     delegationId: delegation.id,
@@ -585,7 +585,7 @@ screens.post("/me/scopes/:scope/withdraw", async (c) => {
 /** 生成する側。押すと、生成の前に照会が走る。 */
 screens.get("/generate", async (c) => {
   const subject = c.req.query("subject") ?? c.env.DEMO_SUBJECT ?? ENS.subject;
-  const scope = c.req.query("scope") ?? "ad-image";
+  const scope = c.req.query("scope") ?? SCOPES[0];
   const asked = c.req.query("asked");
   const [chain, people] = await Promise.all([
     readChainDelegation(c.env, c.env.ENS_CUSTODIAN, scope, subject),

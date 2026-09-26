@@ -245,15 +245,29 @@ Worth saying plainly, because the gaps are structural rather than unfinished wor
 > engagement running to the end of the year and one lapsing in ninety seconds. Run it again
 > (plus `scripts/ens-role.ts grant`) to put the demo back.
 
-1. [`/agency`](https://consent-ledger.yoshitatsu.workers.dev/agency) — grant a consent (60 seconds, so expiry is visible in real time)
-2. [`/generate`](https://consent-ledger.yoshitatsu.workers.dev/generate) — press Generate → `allow`
-3. [`/me`](https://consent-ledger.yoshitatsu.workers.dev/me) — press **Stop this use**
-4. [`/generate`](https://consent-ledger.yoshitatsu.workers.dev/generate) — press Generate again → `revoked`, and nothing is produced
+**The two answers.** On [`/generate`](https://consent-ledger.yoshitatsu.workers.dev/generate),
+pick **Aoi** and:
 
-For the `ask` path, let a consent expire (or use a subject with no record), press Generate,
-then **Ask the human** — a code appears, and the page waits. Approve it at
-`sandbox.auth.world.org/device`. If nobody answers before the deadline, the request expires
-and nothing is generated.
+1. `campaign-print` → **`allow`**. Their agency handles it and has agreed to it.
+2. `lookbook` → **`deny`**. Their agency handles it and has *not* agreed to it — so the reason
+   says to ask them. There is a desk for this.
+3. `ai-generation` → **`ask`**. Nobody was ever given this scope, so there is no desk. Press
+   **Ask the human**: a code appears and the page waits. The same request is visible on
+   [`/me`](https://consent-ledger.yoshitatsu.workers.dev/me) with a countdown, and on
+   [`/agency`](https://consent-ledger.yoshitatsu.workers.dev/agency) as *1 waiting on them*.
+   Nothing is generated while it waits, and if nobody answers, nothing is generated at all.
+
+**A term running out.** On [`/agency`](https://consent-ledger.yoshitatsu.workers.dev/agency),
+open Aoi, record an engagement with the term set to *90 seconds*, and watch the same request
+change answer on its own. Nobody presses anything — that is the normal way permission ends.
+
+**The chain deciding.** `bun run scripts/ens-role.ts withdraw campaign-print` removes one role
+on ENSv2. Nothing is written in the database, and `campaign-print` is refused from the next
+request onwards, naming the chain as the reason.
+
+**The person's own action.** At the bottom of [`/me`](https://consent-ledger.yoshitatsu.workers.dev/me),
+**Stop letting them handle `<scope>`** requires Proof of Human before anything changes. Cancel
+the modal, or fail the check, and the delegation is untouched.
 
 ## Team
 
