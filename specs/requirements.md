@@ -76,7 +76,13 @@ Proofs are mocked in the dev environment — no sandbox World App setup required
       event** (docs `sandbox.auth.world.org/docs`, portal `/portal`, plugin
       `github.com/worldcoin/world-id-agent-plugin`)
 - [x] Demonstrate the complete journey: verification request → user completion →
-      validated result → **the protected action** — verified in production 2026-09-25
+      validated result → **the protected action** — verified in production 2026-09-25, and
+      again on 09-26 for the case that matters most: a scope the person **never delegated**,
+      where the agency cannot answer and only she can. Code `94USP-7THAM` → approved →
+      `allow`, with the reason *"The person answered for nsfw themselves"*
+- [x] The pairwise subject is stable: three separate approvals returned the identical `sub`
+      (`YEPO2FZK…`), so the ledger can tell it is the same human without learning who she is.
+      That is the credential argument, measured rather than asserted
 - [x] Demonstrate a **denied, expired, cancelled or otherwise unsuccessful path where
       the protected action does not occur** — declined (no code), unknown state, and
       deadline expiry all refuse

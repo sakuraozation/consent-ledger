@@ -171,8 +171,15 @@ So Proof of Human is the floor and also the ceiling here. A document or passport
 would be disproportionate: identity is not what consent needs — **continuity** is. The
 pairwise `sub` gives exactly that, and nothing more. It came back identical across
 separate approvals, which is how the ledger can tell it is still her without ever learning
-her name. `auth_time` is in the token too, so the freshness of an approval is available if
-a scope ever needs it.
+her name. Three separate approvals in production returned the identical `sub`, which is the
+argument measured rather than asserted. `auth_time` is in the token too, so the freshness of
+an approval is available if a scope ever needs it.
+
+The sharpest case is a scope she never delegated. There is no authority that could answer it
+— the agency was never given one — so the request goes to her, she approves on her phone, and
+the verdict comes back `allow` with the reason *"The person answered for nsfw themselves"*.
+That consent is recorded under her approval rather than under the agency's delegation, so
+removing the agency's on-chain role does not touch it. It was never theirs.
 
 ## Try it
 
