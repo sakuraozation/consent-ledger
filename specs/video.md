@@ -1,5 +1,9 @@
 # Demo video — script
 
+> The opening (0:00–1:05) is recorded separately, in my own words. The screen half has its own
+> shot list with the exact clicks: [`video-screens.md`](video-screens.md). This file stays as the
+> whole arc and the reasoning behind each beat.
+
 Rules: **2–4 minutes, 720p or better, my own voice.** Synthesized speech, music-with-captions,
 phone recordings and speed-ups all disqualify. Screen recording is fine; QuickTime for both.
 
