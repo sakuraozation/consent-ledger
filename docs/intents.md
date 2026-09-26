@@ -55,15 +55,17 @@ and the work happens on a person's page. Seeing three models side by side — on
 delegated everything, one who delegated advertising only, one in between — says more about
 the permission model than any explanation of it.
 
-The ledger holds no names. A row says `model-a`, because the subject is an identifier and
-who that is belongs in the agency's own systems.
+The ledger holds no names. A row shows the agency's own label for the person — the subject
+itself is an identifier (in production, a World ID pairwise subject), and no name appears on
+a consent, a usage record or an approval. Who that identifier is belongs in the agency's
+systems, the way it already does.
 
 ## The actors
 
 | Actor | Intent | Surface | Not built |
 |---|---|---|---|
 | **The agency** (the operator of all of this) | "Hold the terms we already agreed in a form a machine can answer with, and end a use when the deal says it ends." | A dashboard: who is represented, the term and scope of each engagement, what is live and what has lapsed, the log of refusals, and **Stop this use** for when a deal actually ends early. | Contract drafting, invoicing, talent CRM, and everything under Representation above. Those are their business, not a gap. |
-| **The person** (model) | "Show me what I am tied to and until when — and let me raise it with them if it is wrong." | One page, mostly read-only: which engagements she is tied to, **the term of each**, the same authority as it stands on chain, and where her data was used. One thing she can send: **Ask to change this**, which goes to a person. | Buttons for the daily path. Stopping a single use is the agency's job, reached by asking them. She is not asked to hold a wallet either: the chain is shown as a state, not as a thing to operate. |
+| **The person** (model) | "Show me what I am tied to and until when — and let me raise it with them if it is wrong." | Her own page, named as hers: which engagements she is tied to, **the term of each**, which scopes she handed over and which she kept, the same authority as it stands on chain, and where her data was used. One thing she can send: **Ask to change this**, which goes to a person. One thing she can do: **take a scope back**, behind Proof of Human. | Buttons for the daily path. Stopping a single use is the agency's job, reached by asking them. She is not asked to hold a wallet either: the chain is shown as a state, not as a thing to operate. |
 | **The generating side** (brand, or the agent acting for it) | "Tell me whether I may generate this, before I do, and tell me why if not." | One API call: `POST /check` → `allow` / `deny` / `ask` / `revoked`, each with a reason meant to be shown unchanged. **No human opens anything.** | A UI. They already have one, and this is a step inside it. The `/generate` page is a stand-in so a person can watch the call happen, and it says so on the page — otherwise it reads as a third product we built for brands. |
 | **The agent** (when the answer is `ask`) | "Get a human to decide, and do nothing until they do." | `POST /approvals` returns a user code; the human approves elsewhere; `GET /approvals/:id` reports waiting → approved / denied / expired. | Any default that proceeds without an answer. Waiting is the behaviour, not a failure to handle. |
 
@@ -89,11 +91,34 @@ The three ways permission ends, ranked by how ordinary they are:
 |---|---|---|---|
 | **It lapses** | Nobody | The term passes | The record's own expiry. This is the normal case |
 | **A deal ends early** | The agency | The parties agreed to end it | `Stop this use`, on the agency's side |
-| **The authority is overridden** | The person, with Proof of Human | Something the contract does not cover — a leaked scan, generation outside any agreement, someone acting as her | `Take back all authority`, behind a confirmation |
+| **A scope is taken back** | The person, with Proof of Human | The agency acted outside the scope itself | `Stop letting them handle <scope>`, behind a confirmation |
 
 The third is not a feature for daily use and is not presented as one. It requires proof that
 a real human — the same human as before — is doing it, and that is proportionate precisely
-*because* the action overrides an agreement instead of following one.
+*because* the action changes what was agreed instead of following it.
+
+### Why it is per scope, and not all of it at once
+
+An earlier version offered *Take back all authority*, and it was wrong for a reason worth
+writing down: **the adversary here is the third party who reuses the scan, and ending the
+agency's authority does nothing to them.** It only closes the legitimate channel. The screen
+even listed leaked scans and impersonation as the reasons to press it, which are exactly the
+cases it cannot address.
+
+The case where removing their authority *is* the right lever is narrow: the agency itself
+acted outside what she gave them. And then the proportionate response is to take back **that
+scope**, not everything — which is also the shape the chain already had, since
+`authorizeTextRoles` is per key.
+
+What makes it fit is where a taken-back scope lands: it becomes a scope she holds, so a
+request for it now **comes to her** instead of being refused. Taking something back is not
+switching it off; it is moving the decision to herself. Consents the agency issued in that
+scope stop applying — the authority they rested on is gone — while everything else they
+handle is untouched.
+
+Removing the role on chain is a signature only she can make. This service stops honouring the
+scope immediately, and nothing here can remove the on-chain role on her behalf. That gap is
+the point of the role being there.
 
 ## Negotiation stays outside
 

@@ -12,6 +12,12 @@
 export type Delegation = {
   id: string;
   subject: string;
+  /**
+   * 事務所が名簿で使っている呼び名。**台帳には名前を入れない**——subject は識別子
+   * （実運用では World ID の pairwise sub）で、許諾・使用ログ・承認のどれにも
+   * 名前は現れない。誰なのかは事務所の側の情報。
+   */
+  label?: string;
   custodian: string;
   /**
    * 渡した範囲だけ。モデルによって事務所に委ねる範囲は違う（広告は任せるが
@@ -31,6 +37,7 @@ export const covers = (d: Delegation | undefined, scope: string): boolean =>
 type Row = {
   id: string;
   subject: string;
+  label: string | null;
   custodian: string;
   scopes: string | null;
   granted_at: number;
@@ -41,6 +48,7 @@ type Row = {
 const toDelegation = (r: Row): Delegation => ({
   id: r.id,
   subject: r.subject,
+  label: r.label ?? undefined,
   custodian: r.custodian,
   scopes: r.scopes ? (JSON.parse(r.scopes) as string[]) : [],
   grantedAt: r.granted_at,
@@ -50,11 +58,12 @@ const toDelegation = (r: Row): Delegation => ({
 
 export async function grant(
   db: D1Database,
-  d: { subject: string; custodian: string; scopes: string[]; grantedBySub?: string },
+  d: { subject: string; custodian: string; scopes: string[]; label?: string; grantedBySub?: string },
 ): Promise<Delegation> {
   const row: Delegation = {
     id: crypto.randomUUID(),
     subject: d.subject,
+    label: d.label,
     custodian: d.custodian,
     scopes: d.scopes,
     grantedAt: Date.now(),
@@ -62,9 +71,17 @@ export async function grant(
   };
   await db
     .prepare(
-      "INSERT INTO delegations (id, subject, custodian, scopes, granted_at, granted_by_sub) VALUES (?, ?, ?, ?, ?, ?)",
+      "INSERT INTO delegations (id, subject, label, custodian, scopes, granted_at, granted_by_sub) VALUES (?, ?, ?, ?, ?, ?, ?)",
     )
-    .bind(row.id, row.subject, row.custodian, JSON.stringify(row.scopes), row.grantedAt, row.grantedBySub ?? null)
+    .bind(
+      row.id,
+      row.subject,
+      row.label ?? null,
+      row.custodian,
+      JSON.stringify(row.scopes),
+      row.grantedAt,
+      row.grantedBySub ?? null,
+    )
     .run();
   return row;
 }
@@ -86,15 +103,27 @@ export async function listFor(db: D1Database, subject: string): Promise<Delegati
   return results.map(toDelegation);
 }
 
-/** 本人だけが押せる一手。これ以降、その下の許諾はすべて効かない。 */
-export async function withdraw(db: D1Database, id: string, now = Date.now()): Promise<Delegation | undefined> {
-  const row = await db.prepare("SELECT * FROM delegations WHERE id = ?").bind(id).first<Row>();
-  if (!row) return undefined;
-  if (row.withdrawn_at === null) {
-    await db.prepare("UPDATE delegations SET withdrawn_at = ? WHERE id = ?").bind(now, id).run();
-    row.withdrawn_at = now;
-  }
-  return toDelegation(row);
+/**
+ * 範囲ひとつを事務所から引き上げる。**全か無かではない**——比例する対応は
+ * 「この範囲は任せるのをやめる」であって全権の引き上げではない（09-26 に組み替え。
+ * 全部やめたい時は全範囲に対して押す＝特別扱いしない）。
+ *
+ * 引き上げた範囲は「本人が保持している範囲」に戻る＝以後その範囲の要求は本人に
+ * 聞く経路に入る。だから剥奪は「拒否」ではなく「自分で判断する」への変化になる。
+ */
+export async function removeScope(
+  db: D1Database,
+  subject: string,
+  scope: string,
+): Promise<Delegation | undefined> {
+  const current = await activeFor(db, subject);
+  if (!current) return undefined;
+  const left = current.scopes.filter((s) => s !== scope);
+  await db
+    .prepare("UPDATE delegations SET scopes = ? WHERE id = ?")
+    .bind(JSON.stringify(left), current.id)
+    .run();
+  return { ...current, scopes: left };
 }
 
 /** 事務所が代理している相手の一覧。名前は持たない（台帳に名前を置かない設計）。 */

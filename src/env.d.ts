@@ -18,6 +18,7 @@ declare global {
     ENS_CUSTODIAN?: string;
     /** チェーン上の名前を持っている subject。他は app レイヤのみ */
     ENS_SUBJECT?: string;
+    DEMO_SUBJECT?: string;
   }
 }
 export {};

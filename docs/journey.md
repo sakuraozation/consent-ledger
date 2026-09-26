@@ -99,27 +99,30 @@ relationship works differently than it does.
 
 > *Screen: the agency ends one use, then the same request refused.*
 
-## 6. The exception: something happened that the contract does not cover
+## 6. The exception: her agency went outside what she gave them
 
-A scan leaks. Something is generated that no agreement covers. Someone acts as her. These
-are not deal terms running their course — they are the cases a term cannot anticipate, and
-they are the only place the person acts directly.
+Not a deal she dislikes — that is a phone call. This is the narrow case where they acted
+outside the scope itself. **Stop letting them handle `<scope>`** takes that one scope back and
+leaves the rest alone. It requires proof that a real human, the same human as before, is
+doing it: proportionate precisely because it changes what was agreed rather than following it.
+Refusing to verify changes nothing; closing the window changes nothing.
 
-**Take back all authority** ends the delegation itself, and every consent issued under it
-stops at once. It requires proof that a real human — the same human as before — is doing it.
-That check is proportionate precisely *because* this action overrides an agreement rather
-than following one. Refusing to verify withdraws nothing; closing the window changes nothing.
+What happens next is the part worth watching. The scope does not switch off — it becomes hers,
+so the next request for it **comes to her** rather than being refused. Consents the agency
+issued in that scope stop applying, because the authority they rested on is gone. Everything
+else they handle is untouched.
 
-Because that authority is the on-chain role, it holds even if this service is wrong about it,
-or gone. Removing the role needs nobody's cooperation, and afterwards a request our database
-would still have allowed comes back **refused, naming the chain as the reason**. Roughly
-half a second, measured.
+> *Screen: Stop letting them handle ad-image — confirmed with Proof of Human — then the same
+> request answered by her instead of by the record.*
 
-> *Screen: Take back all authority — confirmed with Proof of Human — then every request
-> under it refused.*
+An earlier version of this step offered *take back all authority*, and it was the wrong lever
+for the stated reason: the adversary is the third party reusing her scan, and ending her
+agency's authority does nothing to them — it only closes the legitimate channel. The screen
+listed leaks and impersonation as the reasons to press it, which are the cases it cannot fix.
 
-She will almost certainly never use this. It is the reason the arrangement is worth
-trusting, and it is presented as an exception rather than a control.
+Removing the matching role on ENS is a signature only she can make. This service stops
+honouring the scope the moment she confirms, and nothing here can remove the on-chain role for
+her. That gap is why the role is on chain at all.
 
 ### If she just disagrees with the terms
 

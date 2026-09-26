@@ -17,9 +17,14 @@ const endOfYear = Date.UTC(2026, 11, 31, 23, 59, 59);
 
 // 事務所は複数のモデルを代理しており、**渡されている範囲は人ごとに違う**。
 // それが分かる初期状態にする（全か無かではないことを画面で見せるため）。
+//
+// 名前はすべて架空。**subject は識別子**（実運用では World ID の pairwise sub）で、
+// 名前は事務所の名簿にだけ載る＝許諾・使用ログ・承認には現れない。
 const PEOPLE = [
   {
-    subject: "model-a",
+    // 本人の画面に出るのはこの人（一部だけ委ねている＝いちばん説明が要らない例）
+    label: "Aoi",
+    subject: "4KQXW7ZP2NTLD6YHS3MRVA9JBC5EGU8F",
     delegated: ["ad-image", "social-post"],
     engagements: [
       { scope: "ad-image", expiresAt: endOfYear },
@@ -28,13 +33,15 @@ const PEOPLE = [
   },
   {
     // 全部任せている（よくある形）
-    subject: "model-b",
+    label: "Mei",
+    subject: "9TMRJ4VC8ZPQKD2NLXAS7HYE3BWFU6GO",
     delegated: ["ad-image", "social-post", "lookbook", "nsfw"],
     engagements: [{ scope: "lookbook", expiresAt: Date.now() + 90 * 86_400_000 }],
   },
   {
     // 広告だけ。残りは自分で判断する
-    subject: "model-c",
+    label: "Rin",
+    subject: "Q2WLZ6XNBK9SDT4YRJ7PMHFAE3CVU8G5",
     delegated: ["ad-image"],
     engagements: [{ scope: "ad-image", expiresAt: endOfYear }],
   },
@@ -64,19 +71,21 @@ run(
 for (const p of PEOPLE) {
   const did = crypto.randomUUID();
   const rows = [
-    `INSERT INTO delegations (id, subject, custodian, scopes, granted_at) VALUES ('${did}', '${p.subject}', '${CUSTODIAN}', '${JSON.stringify(p.delegated)}', ${now});`,
+    `INSERT INTO delegations (id, subject, label, custodian, scopes, granted_at) VALUES ('${did}', '${p.subject}', '${p.label}', '${CUSTODIAN}', '${JSON.stringify(p.delegated)}', ${now});`,
     ...p.engagements.map(
       (e) =>
         `INSERT INTO consents (id, subject, scopes, expires_at, revoked_at, custodian, created_at, delegation_id) VALUES ('${crypto.randomUUID()}', '${p.subject}', '["${e.scope}"]', ${e.expiresAt}, NULL, '${CUSTODIAN}', ${now}, '${did}');`,
     ),
   ];
-  run(`${p.subject}（委任 ${p.delegated.join("/")}）`, rows.join(" "));
+  run(`${p.label}（委任 ${p.delegated.join("/")}）`, rows.join(" "));
 }
 
 console.log(`\n${local ? "ローカル" : "本番"}のデモを初期化した`);
 for (const p of PEOPLE) {
   const kept = ["ad-image", "social-post", "lookbook", "nsfw"].filter((sc) => !p.delegated.includes(sc));
-  console.log(`  ${p.subject}  委任 ${p.delegated.join(", ")}${kept.length ? ` / 本人が保持 ${kept.join(", ")}` : ""}`);
+  console.log(
+    `  ${p.label.padEnd(4)} ${p.subject.slice(0, 10)}…  委任 ${p.delegated.join(", ")}${kept.length ? ` / 本人が保持 ${kept.join(", ")}` : ""}`,
+  );
 }
-console.log(`  model-a の social-post は ${LAPSE_SECONDS} 秒で満了する`);
+console.log(`  Aoi の social-post は ${LAPSE_SECONDS} 秒で満了する（本人の画面＝Aoi）`);
 console.log(`\nチェーン側の役割は別に戻す: bun run scripts/ens-role.ts grant`);

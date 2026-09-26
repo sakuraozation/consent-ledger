@@ -34,7 +34,9 @@ ENS_RESOLVER = "0x8591D727D6a7317f843de72Bd2D31AB31A2841C9"
 ENS_CONSENT_KEY = "consent"
 # チェーン上の名前を持っているのはこの1人（会期中に登録した consentledger.eth）。
 # 他のモデルは app レイヤのみ＝この名前の役割を当てない。
-ENS_SUBJECT = "model-a"
+ENS_SUBJECT = "4KQXW7ZP2NTLD6YHS3MRVA9JBC5EGU8F"
+# 本人の画面（/me）が誰のものか。実運用では認証されたセッションから来る
+DEMO_SUBJECT = "4KQXW7ZP2NTLD6YHS3MRVA9JBC5EGU8F"
 # 事務所役のアドレス（画面と /check がこの役割を見る）
 ENS_CUSTODIAN = "0x43e619de6A13ADF126AB4b329b8c89D1d0ae6694"
 

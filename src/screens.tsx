@@ -2,7 +2,7 @@
 import { Hono } from "hono";
 import { getPendingByRequest, pollApproval, startApproval, sweep } from "./approval";
 import { readChainDelegation } from "./chain";
-import { activeFor, grant as grantDelegation, listFor, roster, withdraw } from "./delegation";
+import { activeFor, grant as grantDelegation, listFor, removeScope, roster } from "./delegation";
 import { bySubject, check, put, record, revoke, summaryFor, usesBySubject } from "./ledger";
 import { Boundary, ChainPanel, EngagementCard, Page, ScopeGrid, UseLog, VerdictBox } from "./ui";
 import { type Proof, REQUIRED_LEVEL, verifyProof } from "./worldid";
@@ -18,7 +18,8 @@ const form = async (c: { req: { formData: () => Promise<FormData> } }): Promise<
   }
 };
 
-const DEMO_SUBJECT = "model-a";
+/** /me と /generate の既定の相手。実運用では認証されたセッションから来る。 */
+const FALLBACK_SUBJECT = "4KQXW7ZP2NTLD6YHS3MRVA9JBC5EGU8F";
 /** この作品で扱う範囲。委任はこの単位で掛かる（全か無かにしない）。 */
 const SCOPES = ["ad-image", "social-post", "lookbook", "nsfw"] as const;
 
@@ -100,8 +101,9 @@ screens.get("/agency", async (c) => {
 
       <h2>Who you represent</h2>
       <p class="sub">
-        Not everyone hands over the same things. What each person delegated is the first thing on their
-        row, because it decides what you can do at all.
+        Not everyone hands over the same things. What each person delegated is the first thing on their row,
+        because it decides what you can do at all. The names are yours; the ledger only knows the identifier
+        beside them.
       </p>
       {people.length === 0 ? (
         <p class="dim">Nobody has put you on record yet.</p>
@@ -113,7 +115,7 @@ screens.get("/agency", async (c) => {
             <div class="card">
               <div class="row">
                 <a href={`/agency/${encodeURIComponent(d.subject)}`} class="term">
-                  {d.subject}
+                  {d.label ?? d.subject.slice(0, 8)}
                 </a>
                 <span class={`pill ${sum && sum.live > 0 ? "allow" : "ask"}`}>
                   {sum ? `${sum.live} live` : "—"}
@@ -125,6 +127,8 @@ screens.get("/agency", async (c) => {
               </div>
               <div class="meta dim">
                 {sum ? `${sum.lapsed} lapsed · ${sum.ended} ended early · ${sum.refusals} requests refused` : ""}
+                {" · "}
+                {d.subject.slice(0, 10)}…
               </div>
             </div>
           );
@@ -168,13 +172,14 @@ screens.get("/agency/:subject", async (c) => {
   const done = consents.filter((x) => !(x.revokedAt === undefined && x.expiresAt > now));
   const mine = requests.filter((r) => r.subject === subject);
   return c.html(
-    <Page title={`Agency — ${subject}`} here="agency">
+    <Page title={`Agency — ${subject.slice(0, 8)}`} here="agency">
       <p class="meta">
         <a href="/agency" class="dim">
           ← Your roster
         </a>
       </p>
-      <h1>{subject}</h1>
+      <h1>{delegation?.label ?? subject.slice(0, 8)}</h1>
+      <p class="meta dim">{subject}</p>
       {delegation ? (
         <p class="sub">
           On record with you since {new Date(delegation.grantedAt).toISOString().slice(11, 19)}Z. You act
@@ -267,7 +272,7 @@ screens.get("/agency/:subject", async (c) => {
 
 screens.post("/agency/consents", async (c) => {
   const f = await form(c);
-  const subject = String(f.get("subject") ?? DEMO_SUBJECT);
+  const subject = String(f.get("subject") ?? c.env.DEMO_SUBJECT ?? FALLBACK_SUBJECT);
   const delegation = await activeFor(c.env.DB, subject);
   // 権限が記録されていなければ事務所は載せられない。ここが権利の線。
   if (!delegation) return c.redirect("/agency");
@@ -298,7 +303,7 @@ screens.post("/agency/:id/revoke", async (c) => {
 
 /** 本人の画面。押す物がひとつだけある。窓口を通さずに効く。 */
 screens.get("/me", async (c) => {
-  const subject = c.req.query("subject") ?? DEMO_SUBJECT;
+  const subject = c.req.query("subject") ?? c.env.DEMO_SUBJECT ?? FALLBACK_SUBJECT;
   const asked = c.req.query("asked");
   const [mine, uses, delegations, chain, chainByScope] = await Promise.all([
     bySubject(c.env.DB, subject),
@@ -308,9 +313,13 @@ screens.get("/me", async (c) => {
     rolesByScope(c.env, subject),
   ]);
   const live = delegations.find((d) => d.withdrawnAt === undefined);
+  const label = live?.label ?? subject.slice(0, 8);
   return c.html(
-    <Page title="What you are tied to" here="me">
-      <h1>What you are tied to, and until when</h1>
+    <Page title={`${label} — what you are tied to`} here="me" who={label}>
+      <p class="meta dim">
+        Signed in as <strong>{label}</strong> · {subject.slice(0, 10)}… · this is her own page, on her phone
+      </p>
+      <h1>{label}, here is what you are tied to</h1>
       <p class="sub">
         Your agency handles the deals — the calls, the bookings, the negotiation. This page is so you can
         see what you are tied to, and until when.
@@ -410,22 +419,27 @@ screens.get("/me", async (c) => {
       </p>
       <ChainPanel s={chain} />
 
-      {live ? (
+      {live && live.scopes.length > 0 ? (
         <div class="exception">
-          <h2>If something happened that no agreement covers</h2>
+          <h2>If your agency went outside what you gave them</h2>
           <p class="sub">
-            A leaked scan. Something generated that no deal covers. Someone acting as you. These are not
-            deals running their course, and they are the only time you act directly instead of calling your
-            agency. This ends the authority itself, and every engagement under it stops at once.
+            Not for a deal you disagree with — that is a phone call. This is for when they acted outside the
+            scope itself. You can stop letting them handle one scope without touching the rest, and after
+            that a request for it comes to you instead of being refused.
           </p>
-          <p>
-            <a href={`/me/delegations/${live.id}/withdraw`} class="btnlink">
-              Take back all authority
-            </a>
-          </p>
+          {live.scopes.map((sc) => (
+            <p>
+              <a
+                href={`/me/scopes/${encodeURIComponent(sc)}/withdraw?subject=${encodeURIComponent(subject)}`}
+                class="btnlink"
+              >
+                Stop letting them handle {sc}
+              </a>
+            </p>
+          ))}
           <p class="meta dim">
-            We check that a real person is doing this, because it overrides an agreement rather than
-            following one. You will probably never need it.
+            We check that a real person is doing this, because it changes what was agreed. You will probably
+            never need it.
           </p>
         </div>
       ) : null}
@@ -435,7 +449,7 @@ screens.get("/me", async (c) => {
 
 /** 申し出。会話は持たない＝事務所の画面に1行立てて、電話に戻す。 */
 screens.post("/me/requests", async (c) => {
-  const subject = c.req.query("subject") ?? DEMO_SUBJECT;
+  const subject = c.req.query("subject") ?? c.env.DEMO_SUBJECT ?? FALLBACK_SUBJECT;
   await c.env.DB.prepare("INSERT INTO change_requests (id, subject, consent_id, at) VALUES (?, ?, ?, ?)")
     .bind(crypto.randomUUID(), subject, c.req.query("consent") ?? null, Date.now())
     .run();
@@ -447,7 +461,7 @@ screens.post("/me/delegations", async (c) => {
   const f = await form(c);
   const picked = SCOPES.filter((sc) => f.get(sc) !== null);
   await grantDelegation(c.env.DB, {
-    subject: String(f.get("subject") ?? DEMO_SUBJECT),
+    subject: String(f.get("subject") ?? c.env.DEMO_SUBJECT ?? FALLBACK_SUBJECT),
     scopes: picked.length > 0 ? [...picked] : ["ad-image"],
     custodian: "Tokyo Model Agency",
   });
@@ -455,33 +469,35 @@ screens.post("/me/delegations", async (c) => {
 });
 
 /**
- * 本人だけの一手。**押す前に本人確認を通す**——この操作は他の誰にも代行させられない
- * ものとして設計してあるのに、誰でも押せるままでは主張が成立しない。
- * 要る資格は「実在する人間で、前と同じ人」だけ＝Proof of Human で足りる（身元は不要）。
+ * 範囲ひとつを事務所から引き上げる前の確認。**押す前に本人確認を通す**——これは
+ * 合意を上書きする操作なので、実在する人間で、前と同じ人であることが要る
+ * （身元は要らない＝Proof of Human で足りる）。
  */
-screens.get("/me/delegations/:id/withdraw", async (c) => {
+screens.get("/me/scopes/:scope/withdraw", async (c) => {
   const appId = c.env.WORLD_APP_ID;
   const action = c.env.WORLD_WITHDRAW_ACTION ?? c.env.WORLD_ACTION;
-  const id = c.req.param("id");
+  const scope = c.req.param("scope");
+  const subject = c.req.query("subject") ?? c.env.DEMO_SUBJECT ?? FALLBACK_SUBJECT;
   const failed = c.req.query("failed");
   return c.html(
-    <Page title="Confirm it is you" here="me">
-      <h1>Taking back all authority</h1>
+    <Page title={`Stop letting them handle ${scope}`} here="me">
+      <h1>Stop letting them handle "{scope}"</h1>
       <p class="sub">
-        This stops every consent your agency issued under the delegation, at once, and they cannot undo it.
-        Because nobody may do this on your behalf, we check that a real person is doing it — and that it is
-        the same person as before. We do not learn who you are.
+        Your agency will no longer be able to agree to anything in this scope, and whatever they already
+        agreed to in it stops applying. Everything else they handle is untouched. From then on, a request
+        for "{scope}" comes to you instead — you keep it, rather than it being refused outright.
       </p>
       <div class="card">
         <div class="meta">
-          Credential required: <strong>{REQUIRED_LEVEL}</strong> (Proof of Human). Not a passport, not a
-          selfie — identity is not what this needs. Continuity is.
+          Credential required: <strong>{REQUIRED_LEVEL}</strong> (Proof of Human). We check that a real
+          person is doing this, and that it is the same person as before, because it changes what was agreed.
+          Not a passport, not a selfie — identity is not what this needs.
         </div>
       </div>
       {failed ? (
         <div class="card">
           <div class="row">
-            <strong>Authority not taken back</strong>
+            <strong>Nothing changed</strong>
             <span class="pill deny">refused</span>
           </div>
           <div class="meta">{failed}</div>
@@ -491,7 +507,7 @@ screens.get("/me/delegations/:id/withdraw", async (c) => {
         <>
           <p>
             <button type="button" id="go">
-              Verify with World ID, then take it back
+              Verify with World ID, then stop it
             </button>{" "}
             <a href="/me" class="dim">
               Cancel
@@ -512,7 +528,7 @@ IDKit.init({
   verification_level: ${JSON.stringify(REQUIRED_LEVEL)},
   handleVerify: async (proof) => {
     // 証明はサーバへ渡すだけ。ここでの成功をそのまま権限に使わない。
-    const r = await fetch(location.pathname, {
+    const r = await fetch(location.pathname + location.search, {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify(proof),
@@ -521,56 +537,57 @@ IDKit.init({
     if (!r.ok) { show("Refused: " + (body.detail || body.reason)); throw new Error(body.reason); }
     location.href = "/me";
   },
-  onError: (e) => show("Cancelled or failed — nothing was withdrawn. " + (e?.code ?? "")),
+  onError: (e) => show("Cancelled or failed — nothing changed. " + (e?.code ?? "")),
 });
 document.getElementById("go").addEventListener("click", () => IDKit.open());
 `,
             }}
           />
           <p class="dim">
-            If you close the window, or the credential is not strong enough, the delegation stays exactly as
-            it is. Refusing to verify does not withdraw anything.
+            Closing the window changes nothing, and a credential that is not strong enough changes nothing.
+            Refusing to verify is not a way to do this.
           </p>
         </>
       ) : (
-        <p class="dim">World ID is not configured on this deployment, so this action cannot be confirmed.</p>
+        <p class="dim">World ID is not configured on this deployment, so this cannot be confirmed.</p>
       )}
-      <p class="dim">Delegation {id}</p>
+      <p class="meta dim">
+        This service stops honouring it the moment you confirm. Removing the matching role on ENS is a
+        signature only you can make — nothing here can do that for you, which is the point of it being
+        there.
+      </p>
     </Page>,
   );
 });
 
-screens.post("/me/delegations/:id/withdraw", async (c) => {
+screens.post("/me/scopes/:scope/withdraw", async (c) => {
   const proof = (await c.req.json().catch(() => null)) as Proof | null;
-  if (!proof) {
-    // 証明なしの POST は通さない（フォームからの直叩きもここで止まる）
-    return c.json({ reason: "proof_required", detail: "Verify with World ID first." }, 400);
-  }
+  if (!proof) return c.json({ reason: "proof_required", detail: "Verify with World ID first." }, 400);
   const action = c.env.WORLD_WITHDRAW_ACTION ?? c.env.WORLD_ACTION ?? "";
   const checked = await verifyProof(c.env, proof, { action, db: c.env.DB });
-  if (!checked.ok) {
-    // 検証が通らない限り委任はそのまま。ここが「本人の一手」の実装。
-    return c.json({ reason: checked.reason, detail: checked.detail }, checked.status);
-  }
-  const d = await withdraw(c.env.DB, c.req.param("id"));
+  // 検証が通らない限り何も変えない。ここが「本人の一手」の実装。
+  if (!checked.ok) return c.json({ reason: checked.reason, detail: checked.detail }, checked.status);
+  const subject = c.req.query("subject") ?? c.env.DEMO_SUBJECT ?? FALLBACK_SUBJECT;
+  const scope = c.req.param("scope");
+  const d = await removeScope(c.env.DB, subject, scope);
   if (!d) return c.json({ reason: "not_found" }, 404);
-  await c.env.DB.prepare("UPDATE delegations SET withdrawn_by_nullifier = ? WHERE id = ?")
-    .bind(checked.nullifier, d.id)
-    .run();
-  return c.json({ ok: true, withdrawn: d.id, verifiedAs: checked.nullifier });
+  return c.json({ ok: true, stillDelegated: d.scopes, verifiedAs: checked.nullifier });
 });
 
 /** 生成する側。押すと、生成の前に照会が走る。 */
 screens.get("/generate", async (c) => {
-  const subject = c.req.query("subject") ?? DEMO_SUBJECT;
+  const subject = c.req.query("subject") ?? c.env.DEMO_SUBJECT ?? FALLBACK_SUBJECT;
   const scope = c.req.query("scope") ?? "ad-image";
   const asked = c.req.query("asked");
-  const chain = await readChainDelegation(c.env, c.env.ENS_CUSTODIAN, scope, subject);
+  const [chain, people] = await Promise.all([
+    readChainDelegation(c.env, c.env.ENS_CUSTODIAN, scope, subject),
+    roster(c.env.DB),
+  ]);
   const v = asked ? await check(c.env.DB, { subject, scope, chain }) : undefined;
   if (v) await record(c.env.DB, { subject, scope, verdict: v, requester: "pipeline-a (demo)" });
 
   return c.html(
-    <Page title="Inside a brand's pipeline" here="generate">
+    <Page title="Inside a brand's pipeline" here="generate" who={people.find((d) => d.subject === subject)?.label}>
       <h1>One call, from inside a brand's own pipeline</h1>
       <Boundary
         holds="Nobody opens this page in real life. A brand's generation pipeline makes this one call from its own code, before it produces anything."
@@ -582,7 +599,13 @@ screens.get("/generate", async (c) => {
       </p>
       <form method="get" action="/generate">
         <input type="hidden" name="asked" value="1" />
-        <input type="text" name="subject" value={subject} aria-label="subject" />{" "}
+        <select name="subject" aria-label="whose data">
+          {people.map((d) => (
+            <option value={d.subject} selected={d.subject === subject}>
+              {d.label ?? d.subject.slice(0, 8)}
+            </option>
+          ))}
+        </select>{" "}
         <select name="scope" aria-label="scope">
           {SCOPES.map((sc) => (
             <option value={sc} selected={scope === sc}>

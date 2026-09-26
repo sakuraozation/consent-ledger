@@ -28,15 +28,15 @@ needed, and how it improves a real product experience."*
 > product event. The fix was to gate the one action that must be the person's own.
 
 - [x] Integrate IDKit in a functioning application, mini app, or onchain flow — the
-      **Withdraw authority** confirmation at `/me/delegations/:id/withdraw`
+      **Stop letting them handle `<scope>`** confirmation at `/me/scopes/:scope/withdraw`
 - [x] Use at least one supported credential and **verify the result on the server or
       onchain** as appropriate — Proof of Human, verified server-side via
       `POST /api/v2/verify/{app_id}` in `verifyProof` (`src/worldid.ts`); the client's
       success is never treated as authorization, and the nullifier is recorded in D1
 - [x] **Clearly explain the specific product event requiring trust, and why the chosen
       credential is the minimum sufficient assurance** — on the confirmation screen itself
-      and in the README: taking the delegation back is the one action nobody may do on her
-      behalf, so what must be true is *a real human, the same one* — not who she is
+      and in the README: taking a scope back is the one action nobody may do on her behalf,
+      so what must be true is *a real human, the same one* — not who she is
 - [x] Demonstrate a successful verification **and one meaningful alternative path**
       (cancellation, unavailable credential, rejection, or an ineligible user) — three
       refusals verified in production: no proof (`proof_required`), credential below the

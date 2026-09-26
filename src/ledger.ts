@@ -115,14 +115,28 @@ export async function check(
     // 平坦に deny を返していたが、それでは World（いま本人に聞く）が不可欠な唯一の
     // ケースを聞かずに断ることになっていた（09-26 に本人が指摘）。
     // deny と ask の線＝deny は「事務所に聞けば答えられる」・ask は「本人しか答えられない」。
-    const live = found.find(
-      (c) => c.scopes.includes(input.scope) && c.revokedAt === undefined && c.expiresAt > now,
+    const inScope = found.filter((c) => c.scopes.includes(input.scope));
+    // 本人が自分で答えたものだけが通る。approvedBySub の有無で見分ける——これを
+    // 見ずに「生きている許諾」で通していたため、剥奪後も事務所の許諾が allow に
+    // なり、しかも理由が「本人が答えた」と誤って名乗っていた（09-26 に発見）。
+    const own = inScope.find(
+      (c) => c.approvedBySub !== undefined && c.revokedAt === undefined && c.expiresAt > now,
     );
-    if (live) {
+    if (own) {
       return {
         decision: "allow",
-        reason: `The person answered for "${input.scope}" themselves; it holds until ${new Date(live.expiresAt).toISOString()}.`,
-        consentId: live.id,
+        reason: `The person answered for "${input.scope}" themselves; it holds until ${new Date(own.expiresAt).toISOString()}.`,
+        consentId: own.id,
+      };
+    }
+    // 事務所が出したものは効かない。範囲を渡していない（または引き上げた）ので、
+    // その範囲で彼らが合意したことは根拠を失っている。
+    const byAgency = inScope.find((c) => c.delegationId !== undefined);
+    if (byAgency) {
+      return {
+        decision: "revoked",
+        reason: `"${input.scope}" is not the agency's to handle, so what they agreed in it (${byAgency.id}) no longer applies.`,
+        consentId: byAgency.id,
       };
     }
     return {

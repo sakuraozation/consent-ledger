@@ -145,16 +145,27 @@ exists to stop, so the RPC being down costs a human approval, not a silent yes.
 
 ### The one action nobody may do on her behalf
 
-Everything else here is the agency's job, and that is deliberate. One thing is not:
-**withdrawing the delegation**. If anyone could press it, the backstop would not be a
-backstop — so that button leads to a confirmation that requires Proof of Human, verified on
-our server before anything is written.
+Everything else here is the agency's job, and that is deliberate. One thing is not: **taking
+a scope back**, for the narrow case where they acted outside what she gave them. If anyone
+could press it, the backstop would not be a backstop — so it leads to a confirmation that
+requires Proof of Human, verified on our server before anything is written.
+
+It is per scope, not all-or-nothing, and that is the whole argument in miniature. The
+adversary is the third party reusing her scan, and ending her agency's authority does nothing
+to them — it only closes the legitimate channel. What *is* worth doing is narrower: take back
+the one scope they overstepped. The scope then becomes hers, so the next request for it comes
+to her instead of being refused, and consents they issued in it stop applying. Everything
+else they handle is untouched.
 
 The refusals matter more than the success. No proof, a credential below the required level,
 or a proof World rejects all leave the delegation **exactly as it was**; closing the modal
 withdraws nothing. Refusing to verify is not a way to withdraw, and verifying is not
 something the client can claim — the browser's success is only a proof to hand to the
 server.
+
+Removing the matching role on ENS is a signature only she can make. This service stops
+honouring the scope the moment she confirms; nothing here can touch the on-chain role for her,
+which is why it is on chain.
 
 There is no login anywhere else. The agency dashboard and the generating side are open in
 this demo, which is a deliberate omission rather than an oversight: a session layer is

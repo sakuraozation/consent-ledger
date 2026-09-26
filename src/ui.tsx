@@ -52,12 +52,9 @@ table.log td:first-child { white-space:nowrap }
 .exception h2 { margin-top:0 }
 `;
 
-export const Page: FC<PropsWithChildren<{ title: string; here?: string; refresh?: number }>> = ({
-  title,
-  here,
-  refresh,
-  children,
-}) => (
+export const Page: FC<
+  PropsWithChildren<{ title: string; here?: string; refresh?: number; who?: string }>
+> = ({ title, here, refresh, who, children }) => (
   <html lang="en">
     <head>
       <meta charset="utf-8" />
@@ -77,11 +74,12 @@ export const Page: FC<PropsWithChildren<{ title: string; here?: string; refresh?
             Agency
           </a>
           <a href="/me" aria-current={here === "me" ? "page" : undefined}>
-            Model
+            {who ?? "Model"}
           </a>
           <a href="/generate" aria-current={here === "generate" ? "page" : undefined}>
             Brand's pipeline
           </a>
+          {here === "generate" && who ? <span class="dim">· asking about {who}</span> : null}
         </nav>
         {children}
       </main>
