@@ -110,12 +110,13 @@ screens.get("/me", async (c) => {
           <div class="row">
             <strong>{live.custodian}</strong>
             <a href={`/me/delegations/${live.id}/withdraw`} class="btnlink">
-              Withdraw authority
+              Take back all authority
             </a>
           </div>
           <div class="meta">
-            Acting for you since {new Date(live.grantedAt).toISOString().slice(11, 19)}Z. Withdrawing stops
-            every consent they issued under it, at once. They cannot undo it.
+            Acting for you since {new Date(live.grantedAt).toISOString().slice(11, 19)}Z. Stopping one use
+            ends that use. Taking back all authority ends every use they agreed to, at once — and they
+            cannot undo it.
           </div>
         </div>
       ) : (
@@ -177,7 +178,7 @@ screens.get("/me/delegations/:id/withdraw", async (c) => {
   const failed = c.req.query("failed");
   return c.html(
     <Page title="Confirm it is you" here="me">
-      <h1>Taking the authority back</h1>
+      <h1>Taking back all authority</h1>
       <p class="sub">
         This stops every consent your agency issued under the delegation, at once, and they cannot undo it.
         Because nobody may do this on your behalf, we check that a real person is doing it — and that it is
@@ -192,7 +193,7 @@ screens.get("/me/delegations/:id/withdraw", async (c) => {
       {failed ? (
         <div class="card">
           <div class="row">
-            <strong>Not withdrawn</strong>
+            <strong>Authority not taken back</strong>
             <span class="pill deny">refused</span>
           </div>
           <div class="meta">{failed}</div>
@@ -202,7 +203,7 @@ screens.get("/me/delegations/:id/withdraw", async (c) => {
         <>
           <p>
             <button type="button" id="go">
-              Verify with World ID, then withdraw
+              Verify with World ID, then take it back
             </button>{" "}
             <a href="/me" class="dim">
               Cancel
@@ -307,7 +308,9 @@ screens.get("/generate", async (c) => {
         <>
           <VerdictBox v={v} />
           {v.decision === "allow" ? (
-            <p class="dim">The image would be produced here. Revoke it on the person's page and press Generate again.</p>
+            <p class="dim">
+              The image would be produced here. Stop the use on the person's page, then press Generate again.
+            </p>
           ) : null}
           {v.decision === "ask" && v.requestId ? (
             <form method="post" action="/generate/ask">

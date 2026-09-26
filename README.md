@@ -171,9 +171,13 @@ a scope ever needs it.
 
 ## Try it
 
+> Starting state is set by [`scripts/reset-demo.ts`](scripts/reset-demo.ts): one live
+> delegation for `model-a` and one valid consent, with an empty usage log. Run it again
+> (plus `scripts/ens-role.ts grant`) to put the demo back.
+
 1. [`/agency`](https://consent-ledger.yoshitatsu.workers.dev/agency) — grant a consent (60 seconds, so expiry is visible in real time)
 2. [`/generate`](https://consent-ledger.yoshitatsu.workers.dev/generate) — press Generate → `allow`
-3. [`/me`](https://consent-ledger.yoshitatsu.workers.dev/me) — press Revoke
+3. [`/me`](https://consent-ledger.yoshitatsu.workers.dev/me) — press **Stop this use**
 4. [`/generate`](https://consent-ledger.yoshitatsu.workers.dev/generate) — press Generate again → `revoked`, and nothing is produced
 
 For the `ask` path, let a consent expire (or use a subject with no record), press Generate,

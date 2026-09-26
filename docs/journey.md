@@ -74,15 +74,15 @@ decision, not an oversight: an agent that proceeds on silence is not asking.
 
 ## 5. Something is wrong, and it stops
 
-Usually this is a message: she tells her agency, and they press Revoke. Seconds later the
+Usually this is a message: she tells her agency, and they press **Stop this use**. Seconds later the
 same request from the same pipeline comes back **refused, with the reason**. That is the
 daily path, and it is the one that has never existed before — until now neither of them
 could stop anything.
 
 > *Screen: the agency revokes, then the same request refused.*
 
-The rarer path is hers alone. If she ever wants the authority back, she withdraws the
-delegation, and **every consent issued under it stops at once** — the agency cannot undo
+The rarer path is hers alone. **Take back all authority** ends the delegation, and
+**every consent issued under it stops at once** — the agency cannot undo
 that. She will almost never use it. It is the reason the arrangement is worth trusting.
 
 Because that authority is the on-chain role, the withdrawal holds even if this service is
@@ -90,7 +90,13 @@ wrong about it, or gone. Taking the role away needs nobody's cooperation, and af
 request that our database would still have allowed comes back **refused, naming the chain as
 the reason**. Roughly half a second, measured.
 
-> *Screen: Withdraw authority, then every request under it refused.*
+> *Screen: Take back all authority — confirmed with Proof of Human — then every request
+> under it refused.*
+
+The two labels are deliberately named after **what they end**, not after the verb. "Revoke"
+and "Withdraw" sat next to each other and could not be told apart at a glance: the first
+reader of the screens asked what the difference was, which is the same question a judge
+would have had.
 
 Ten seconds, either way, no explanation needed.
 

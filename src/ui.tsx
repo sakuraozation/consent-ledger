@@ -89,13 +89,15 @@ export const ConsentCard: FC<{ c: Consent; revocable?: boolean; revokeAction?: s
         <strong class={revoked ? "strike" : undefined}>{c.scopes.join(", ")}</strong>
         {revocable && !revoked ? (
           <form method="post" action={revokeAction ?? `/me/${c.id}/revoke`}>
-            <button type="submit">Revoke</button>
+            {/* ラベルは効く範囲で書く。"Revoke" と "Withdraw" は並ぶと区別が付かない
+                （09-26・本人が意味を尋ねた＝審査員も同じところで迷う） */}
+            <button type="submit">Stop this use</button>
           </form>
         ) : null}
       </div>
       <div class="meta">
         {revoked
-          ? `revoked by the ${c.revokedBy ?? "custodian"} at ${when(c.revokedAt as number)} — no longer usable by anyone`
+          ? `stopped by the ${c.revokedBy ?? "agency"} at ${when(c.revokedAt as number)} — no longer usable by anyone`
           : expired
             ? `expired at ${when(c.expiresAt)} — the next request will ask you again`
             : `valid until ${when(c.expiresAt)}`}
