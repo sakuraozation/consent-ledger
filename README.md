@@ -202,6 +202,14 @@ the verdict comes back `allow` with the reason *"The person answered for ai-gene
 themselves"*. That consent is recorded under her approval rather than under the agency's
 delegation, so removing the agency's on-chain role does not touch it. It was never theirs.
 
+### No photographs, on purpose
+
+There are no faces anywhere in this, and that is a decision rather than a shortcut. The whole
+premise is that images of a person were used without her agreeing to it. Putting a stock face
+or a generated one on these screens would be doing the same thing to make the demo look
+better — and no image or scan data is stored here in the first place. The roster shows
+initials.
+
 ### What this does not solve
 
 Worth saying plainly, because the gaps are structural rather than unfinished work.

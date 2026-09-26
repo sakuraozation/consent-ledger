@@ -21,12 +21,13 @@ import {
 } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { sepolia } from "viem/chains";
+import { ENS } from "../src/config";
 
 const FACTORY = "0x10dc6333cdfe1fcef624c6e0a8221b91804cd7ef" as const;
 const RESOLVER_IMPL = "0x9eae5c2730a7dd16bdd1dee6421a1b91e3b0365e" as const;
 const ETH_REGISTRY = "0xbdc85dd5b15d7ecb354cd7cb6f2c50b4f2c4f0e2" as const;
-const LABEL = "consentledger";
-const NAME = `${LABEL}.eth`;
+const LABEL = ENS.name.replace(/\.eth$/, "");
+const NAME = ENS.name;
 // 委任するキー＝許諾のレコードだけ。事務所はここしか書けない。
 const CONSENT_KEY = "consent.bodyscan";
 const OTHER_KEY = "avatar"; // 範囲の外（失敗経路の証拠）

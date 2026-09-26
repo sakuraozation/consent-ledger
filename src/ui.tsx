@@ -50,6 +50,12 @@ table.log td:first-child { white-space:nowrap }
 /* 例外は本文から切り離す。一等地に置くと日常の操作に見える */
 .exception { margin-top:3.5rem; border-top:1px solid var(--line); padding-top:1.25rem }
 .exception h2 { margin-top:0 }
+/* 名簿の行に頭文字。**顔写真は置かない**——同意なく画像を使われたことが題材なのに、
+   こちらがストックや生成の顔を置けば同じことをすることになる（画像は保存しない設計）。 */
+.who { display:flex; align-items:center; gap:.6rem }
+.mono { display:grid; place-items:center; width:2.1rem; height:2.1rem; flex:0 0 auto;
+  border-radius:50%; border:1px solid var(--line); background:var(--bg);
+  font:600 .85rem/1 ui-sans-serif,system-ui; letter-spacing:.02em; color:var(--muted) }
 `;
 
 export const Page: FC<
@@ -301,4 +307,11 @@ export const ScopeGrid: FC<{
         : "delegated = your agency handles it · withheld = you kept it, and nobody can agree to it on your behalf"}
     </div>
   </div>
+);
+
+/** 名簿の頭文字。顔は使わない（本文の CSS コメント参照）。 */
+export const Monogram: FC<{ name: string }> = ({ name }) => (
+  <span class="mono" aria-hidden="true">
+    {name.slice(0, 2)}
+  </span>
 );

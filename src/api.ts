@@ -6,6 +6,7 @@
 import { Hono } from "hono";
 import { getPendingByRequest, pollApproval, startApproval, sweep } from "./approval";
 import { readChainDelegation } from "./chain";
+import { SELF_ANSWERED_MS } from "./config";
 import { check, put, record, recordOutcome } from "./ledger";
 
 export const api = new Hono<{ Bindings: Env }>();
@@ -86,7 +87,7 @@ api.get("/approvals/:requestId", async (c) => {
       id: crypto.randomUUID(),
       subject: r.pending.subject,
       scopes: [r.pending.scope],
-      expiresAt: Date.now() + 60_000,
+      expiresAt: Date.now() + SELF_ANSWERED_MS,
       approvedBySub: existing?.sub,
     });
   }

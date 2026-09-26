@@ -4,7 +4,8 @@ import { getPendingByRequest, pendingCounts, pendingFor, pollApproval, startAppr
 import { readChainDelegation } from "./chain";
 import { activeFor, listFor, removeScope, roster } from "./delegation";
 import { bySubject, check, put, record, revoke, summaryFor, usesBySubject } from "./ledger";
-import { Boundary, ChainPanel, EngagementCard, Page, ScopeGrid, UseLog, VerdictBox } from "./ui";
+import { AGENCY_SIDE, ENS, SCOPES, SCOPE_NOTE, SELF_ANSWERED_MS, TERMS } from "./config";
+import { Boundary, ChainPanel, EngagementCard, Monogram, Page, ScopeGrid, UseLog, VerdictBox } from "./ui";
 import { type Proof, REQUIRED_LEVEL, verifyProof } from "./worldid";
 
 export const screens = new Hono<{ Bindings: Env }>();
@@ -18,44 +19,13 @@ const form = async (c: { req: { formData: () => Promise<FormData> } }): Promise<
   }
 };
 
-/** /me と /generate の既定の相手。実運用では認証されたセッションから来る。 */
-const FALLBACK_SUBJECT = "4KQXW7ZP2NTLD6YHS3MRVA9JBC5EGU8F";
-/**
- * 扱う範囲。**軸は「成果物の種類」ではなく「使い方」**——広告もルックブックも
- * 事務所が当然やる仕事なので、成果物で切ると「本人が保持する範囲」が不自然になる
- * （09-26 に本人が指摘）。線は1本で、撮影の成果物の掲載は事務所、**体のデータを
- * 生成 AI に使うことは本人**。後者は事務所がまだコントロールしていない領域で、
- * 連絡も支払いも直接本人に来るべきもの。
- */
-const SCOPES = [
-  // 事務所の仕事（従来からある）
-  "campaign-print",
-  "campaign-social",
-  "lookbook",
-  // 本人のもの（生成 AI 以降に現れた）
-  "ai-generation",
-  "ai-training",
-  "digital-double",
-] as const;
-
-/** 従来の仕事か、生成 AI 以降のものか。画面の並びと説明文がこれで変わる。 */
-const AGENCY_SIDE: readonly string[] = ["campaign-print", "campaign-social", "lookbook"];
-const SCOPE_NOTE: Record<string, string> = {
-  "campaign-print": "the shoot's images, in print and out-of-home",
-  "campaign-social": "the shoot's images, on the brand's channels",
-  lookbook: "the shoot's images, in trade and wholesale material",
-  "ai-generation": "new images generated from her body data — not from the shoot",
-  "ai-training": "her body data used to train a model",
-  "digital-double": "a persistent likeness that can be posed and reused without her",
-};
-
 screens.get("/", (c) => c.redirect("/generate"));
 
-/** 期間の選択を期日にする。契約の期間は月単位・デモ用の90秒だけ別扱い。 */
+/** 期間の選択を期日にする。値は src/config.ts。 */
 const termToExpiry = (term: string): number => {
-  if (term === "demo") return Date.now() + 90_000;
-  if (term === "quarter") return Date.now() + 90 * 86_400_000;
-  return Date.UTC(2026, 11, 31, 23, 59, 59);
+  if (term === "demo") return Date.now() + TERMS.demoSeconds * 1000;
+  if (term === "quarter") return TERMS.quarter();
+  return TERMS.endOfYear();
 };
 
 type ChangeRequest = { id: string; subject: string; consentId?: string; at: number };
@@ -139,9 +109,12 @@ screens.get("/agency", async (c) => {
           return (
             <div class="card">
               <div class="row">
-                <a href={`/agency/${encodeURIComponent(d.subject)}`} class="term">
-                  {d.label ?? d.subject.slice(0, 8)}
-                </a>
+                <span class="who">
+                  <Monogram name={d.label ?? d.subject} />
+                  <a href={`/agency/${encodeURIComponent(d.subject)}`} class="term">
+                    {d.label ?? d.subject.slice(0, 8)}
+                  </a>
+                </span>
                 <span>
                   {waiting[d.subject] ? (
                     <a
@@ -211,7 +184,10 @@ screens.get("/agency/:subject", async (c) => {
           ← Your roster
         </a>
       </p>
-      <h1>{delegation?.label ?? subject.slice(0, 8)}</h1>
+      <h1 class="who">
+        <Monogram name={delegation?.label ?? subject} />
+        {delegation?.label ?? subject.slice(0, 8)}
+      </h1>
       <p class="meta dim">{subject}</p>
       {delegation ? (
         <p class="sub">
@@ -320,7 +296,7 @@ screens.get("/agency/:subject", async (c) => {
 
 screens.post("/agency/consents", async (c) => {
   const f = await form(c);
-  const subject = String(f.get("subject") ?? c.env.DEMO_SUBJECT ?? FALLBACK_SUBJECT);
+  const subject = String(f.get("subject") ?? c.env.DEMO_SUBJECT ?? ENS.subject);
   const delegation = await activeFor(c.env.DB, subject);
   // 権限が記録されていなければ事務所は載せられない。ここが権利の線。
   if (!delegation) return c.redirect("/agency");
@@ -351,7 +327,7 @@ screens.post("/agency/:id/revoke", async (c) => {
 
 /** 本人の画面。押す物がひとつだけある。窓口を通さずに効く。 */
 screens.get("/me", async (c) => {
-  const subject = c.req.query("subject") ?? c.env.DEMO_SUBJECT ?? FALLBACK_SUBJECT;
+  const subject = c.req.query("subject") ?? c.env.DEMO_SUBJECT ?? ENS.subject;
   const asked = c.req.query("asked");
   await sweep(c.env.DB);
   const [mine, uses, delegations, chain, chainByScope, waiting] = await Promise.all([
@@ -367,7 +343,7 @@ screens.get("/me", async (c) => {
   return c.html(
     <Page title={`${label} — what you are tied to`} here="me" who={label} refresh={waiting.length > 0 ? 5 : undefined}>
       <p class="meta dim">
-        Signed in as <strong>{label}</strong> · {subject.slice(0, 10)}… · this is her own page, on her phone
+        Signed in as <strong>{label}</strong> · {subject.slice(0, 10)}… · her own page, on her phone
       </p>
       <h1>{label}, here is what you are tied to</h1>
       <Boundary
@@ -495,7 +471,7 @@ screens.get("/me", async (c) => {
 
 /** 申し出。会話は持たない＝事務所の画面に1行立てて、電話に戻す。 */
 screens.post("/me/requests", async (c) => {
-  const subject = c.req.query("subject") ?? c.env.DEMO_SUBJECT ?? FALLBACK_SUBJECT;
+  const subject = c.req.query("subject") ?? c.env.DEMO_SUBJECT ?? ENS.subject;
   await c.env.DB.prepare("INSERT INTO change_requests (id, subject, consent_id, at) VALUES (?, ?, ?, ?)")
     .bind(crypto.randomUUID(), subject, c.req.query("consent") ?? null, Date.now())
     .run();
@@ -511,7 +487,7 @@ screens.get("/me/scopes/:scope/withdraw", async (c) => {
   const appId = c.env.WORLD_APP_ID;
   const action = c.env.WORLD_WITHDRAW_ACTION ?? c.env.WORLD_ACTION;
   const scope = c.req.param("scope");
-  const subject = c.req.query("subject") ?? c.env.DEMO_SUBJECT ?? FALLBACK_SUBJECT;
+  const subject = c.req.query("subject") ?? c.env.DEMO_SUBJECT ?? ENS.subject;
   const failed = c.req.query("failed");
   return c.html(
     <Page title={`Stop letting them handle ${scope}`} here="me">
@@ -599,7 +575,7 @@ screens.post("/me/scopes/:scope/withdraw", async (c) => {
   const checked = await verifyProof(c.env, proof, { action, db: c.env.DB });
   // 検証が通らない限り何も変えない。ここが「本人の一手」の実装。
   if (!checked.ok) return c.json({ reason: checked.reason, detail: checked.detail }, checked.status);
-  const subject = c.req.query("subject") ?? c.env.DEMO_SUBJECT ?? FALLBACK_SUBJECT;
+  const subject = c.req.query("subject") ?? c.env.DEMO_SUBJECT ?? ENS.subject;
   const scope = c.req.param("scope");
   const d = await removeScope(c.env.DB, subject, scope);
   if (!d) return c.json({ reason: "not_found" }, 404);
@@ -608,7 +584,7 @@ screens.post("/me/scopes/:scope/withdraw", async (c) => {
 
 /** 生成する側。押すと、生成の前に照会が走る。 */
 screens.get("/generate", async (c) => {
-  const subject = c.req.query("subject") ?? c.env.DEMO_SUBJECT ?? FALLBACK_SUBJECT;
+  const subject = c.req.query("subject") ?? c.env.DEMO_SUBJECT ?? ENS.subject;
   const scope = c.req.query("scope") ?? "ad-image";
   const asked = c.req.query("asked");
   const [chain, people] = await Promise.all([
@@ -704,7 +680,7 @@ screens.get("/generate/waiting/:requestId", async (c) => {
       id: crypto.randomUUID(),
       subject: p.subject,
       scopes: [p.scope],
-      expiresAt: Date.now() + 60_000,
+      expiresAt: Date.now() + SELF_ANSWERED_MS,
       custodian: p.sub,
     });
   }

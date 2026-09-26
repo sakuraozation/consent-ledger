@@ -8,6 +8,7 @@
 // 読めなかった時は allow を出さない（fail closed）。RPC の不調で許諾の範囲が
 // 広がるのは、この作品が防ごうとしているものそのものなので。
 import { createPublicClient, encodeAbiParameters, http, keccak256, namehash, parseAbi, toHex } from "viem";
+import { ENS } from "./config";
 import { sepolia } from "viem/chains";
 
 /** PermissionedResolverLib.ROLE_SET_TEXT = 1 << 4 */
@@ -57,13 +58,13 @@ export async function readChainDelegation(
   scope?: string,
   subject?: string,
 ): Promise<ChainState> {
-  const resolver = env.ENS_RESOLVER;
-  const name = env.ENS_NAME;
-  const prefix = env.ENS_CONSENT_KEY;
-  if (!resolver || !name || !prefix) return { configured: false, ok: false };
+  // vars が正本、既定は src/config.ts（スクリプトと同じ値を見る）
+  const resolver = env.ENS_RESOLVER ?? ENS.resolver;
+  const name = env.ENS_NAME ?? ENS.name;
+  const prefix = env.ENS_CONSENT_KEY ?? ENS.keyPrefix;
   // チェーンに載っているのは1人ぶんの名前だけ（会期中に登録した consentledger.eth）。
   // 他の人は app レイヤのみ＝その人の判定にこの名前の役割を当ててはいけない。
-  if (subject !== undefined && env.ENS_SUBJECT !== undefined && subject !== env.ENS_SUBJECT) {
+  if (subject !== undefined && subject !== (env.ENS_SUBJECT ?? ENS.subject)) {
     return { configured: false, ok: false };
   }
   const key = scope ? keyFor(prefix, scope) : prefix;

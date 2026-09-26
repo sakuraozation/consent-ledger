@@ -8,10 +8,9 @@ import { createPublicClient, createWalletClient, http, parseAbi, toHex } from "v
 import { privateKeyToAccount } from "viem/accounts";
 import { sepolia } from "viem/chains";
 
-const RESOLVER = "0x8591D727D6a7317f843de72Bd2D31AB31A2841C9" as const;
-const NAME = "consentledger.eth";
-// 範囲ごとにキーが分かれる。委任は範囲単位で掛かる（全か無かではない）。
-const PREFIX = "consent";
+import { AGENCY_SIDE, ENS } from "../src/config";
+
+const { resolver: RESOLVER, name: NAME, keyPrefix: PREFIX } = ENS;
 
 const abi = parseAbi([
   "function authorizeTextRoles(bytes toName, string key, address account, bool grant) returns (bool)",
@@ -40,8 +39,7 @@ if (action !== "grant" && action !== "withdraw") {
 }
 // 既定は従来の仕事の3つ。生成 AI の側（ai-generation 等）は渡さない
 // ＝「事務所がまだコントロールしていない領域」を渡していない状態から始める。
-const scopes =
-  process.argv.length > 3 ? process.argv.slice(3) : ["campaign-print", "campaign-social", "lookbook"];
+const scopes = process.argv.length > 3 ? process.argv.slice(3) : [...AGENCY_SIDE];
 const personKey = await devVar("EVM_PRIVATE_KEY");
 const agencyKey = await devVar("AGENCY_PRIVATE_KEY");
 if (!personKey?.startsWith("0x") || !agencyKey?.startsWith("0x")) {

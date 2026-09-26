@@ -156,6 +156,9 @@ Close on the four outcomes.
 - **Screen**: 1280×720 at least. Hide bookmarks; use a clean window.
 - **Do not show**: `.dev.vars`, the terminal scrollback with keys, any real client name, any
   image of a person.
+- If a judge asks why the screens have no photographs, the answer is one line: *the premise is
+  that her images were used without her agreeing; putting a stock face here to make the demo
+  prettier would be the same act, and nothing stores images anyway.*
 - Two takes maximum per section; stitch rather than restart.
 - If the World approval is slow on camera, keep talking — the waiting state is part of the
   argument, not dead air.

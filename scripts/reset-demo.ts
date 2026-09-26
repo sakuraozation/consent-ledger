@@ -9,11 +9,13 @@
 // 期間が全部秒単位だと「契約の期間」ではなく「タイマー」に見えるので、二本立てにする。
 // 過去の記録（許諾・使用ログ・検証・申し出）は消す＝前回の撮影の残骸を残さない。
 // チェーン側の役割は付与に戻す（scripts/ens-role.ts grant を別に叩く）。
+import { AGENCY_SIDE, ENS, SCOPES, TERMS } from "../src/config";
+
 const local = process.argv.includes("--local");
 const flag = local ? "--local" : "--remote";
 const CUSTODIAN = "Tokyo Model Agency";
 const LAPSE_SECONDS = 90;
-const endOfYear = Date.UTC(2026, 11, 31, 23, 59, 59);
+const endOfYear = TERMS.endOfYear();
 
 // 事務所は複数のモデルを代理しており、**渡されている範囲は人ごとに違う**。
 // それが分かる初期状態にする（全か無かではないことを画面で見せるため）。
@@ -24,8 +26,8 @@ const PEOPLE = [
   {
     // 本人の画面に出るのはこの人。従来の仕事は任せ、生成 AI の側は自分で持つ
     label: "Aoi",
-    subject: "4KQXW7ZP2NTLD6YHS3MRVA9JBC5EGU8F",
-    delegated: ["campaign-print", "campaign-social", "lookbook"],
+    subject: ENS.subject, // チェーン上の名前を持っているのはこの人
+    delegated: [...AGENCY_SIDE],
     engagements: [
       { scope: "campaign-print", expiresAt: endOfYear },
       { scope: "campaign-social", expiresAt: Date.now() + LAPSE_SECONDS * 1000 },
@@ -82,9 +84,7 @@ for (const p of PEOPLE) {
 
 console.log(`\n${local ? "ローカル" : "本番"}のデモを初期化した`);
 for (const p of PEOPLE) {
-  const kept = ["campaign-print", "campaign-social", "lookbook", "ai-generation", "ai-training", "digital-double"].filter(
-    (sc) => !p.delegated.includes(sc),
-  );
+  const kept = SCOPES.filter((sc) => !p.delegated.includes(sc));
   console.log(
     `  ${p.label.padEnd(4)} ${p.subject.slice(0, 10)}…  委任 ${p.delegated.join(", ")}${kept.length ? ` / 本人が保持 ${kept.join(", ")}` : ""}`,
   );
