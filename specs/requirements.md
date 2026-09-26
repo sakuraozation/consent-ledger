@@ -84,9 +84,10 @@ Proofs are mocked in the dev environment — no sandbox World App setup required
       again on 09-26 for the case that matters most: a scope the person **never delegated**,
       where the agency cannot answer and only they can. Code `94USP-7THAM` → approved →
       `allow`, with the reason *"The person answered for nsfw themselves"*
-- [x] The pairwise subject is stable: three separate approvals returned the identical `sub`
-      (`YEPO2FZK…`), so the ledger can tell it is the same human without learning who they are.
-      That is the credential argument, measured rather than asserted
+- [x] The pairwise subject is stable: three separate approvals returned the identical `sub`,
+      so the ledger can tell it is the same human without learning who they are. That is the
+      credential argument, measured rather than asserted (the value itself is not written down
+      here — it is app-scoped and identifies nobody, but there is no reason to publish it)
 - [x] Demonstrate a **denied, expired, cancelled or otherwise unsuccessful path where
       the protected action does not occur** — declined (no code), unknown state, and
       deadline expiry all refuse
