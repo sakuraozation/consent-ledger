@@ -5,7 +5,7 @@ import { readChainDelegation } from "./chain";
 import { activeFor, listFor, removeScope, roster } from "./delegation";
 import { bySubject, check, put, record, revoke, summaryFor, usesBySubject } from "./ledger";
 import { AGENCY_SIDE, ENS, SCOPES, SCOPE_NOTE, SELF_ANSWERED_MS, TERMS } from "./config";
-import { Boundary, ChainPanel, EngagementCard, Monogram, Page, ScopeGrid, UseLog, VerdictBox } from "./ui";
+import { Boundary, EngagementCard, Monogram, Page, ScopeGrid, UseLog, VerdictBox } from "./ui";
 import { type Proof, REQUIRED_LEVEL, verifyProof } from "./worldid";
 
 export const screens = new Hono<{ Bindings: Env }>();
@@ -438,9 +438,23 @@ screens.get("/me", async (c) => {
       <p class="sub">Including the times they were refused.</p>
       <UseLog uses={uses} />
 
-      <h2>The same authority, on chain</h2>
-      <p class="sub">A role on your own name, one per scope. No server has to cooperate for it to hold.</p>
-      <ChainPanel s={chain} />
+      <h2>Where that authority is held</h2>
+      <p class="sub">
+        Each of those roles is on your own name on ENSv2, one per scope. No server has to cooperate for the
+        limit to hold, and putting a role back is a signature only you can make.
+      </p>
+      <div class="card">
+        <div class="meta">
+          {chain.configured ? (
+            <>
+              <strong>{chain.name}</strong> · resolver <code>{chain.resolver}</code>
+              {chain.ok ? "" : " · could not be read, so nothing is assumed"}
+            </>
+          ) : (
+            "Not configured on this deployment."
+          )}
+        </div>
+      </div>
 
       {live && live.scopes.length > 0 ? (
         <div class="exception">
