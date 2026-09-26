@@ -105,11 +105,23 @@ gets the consent record and nothing else.
 including the three that must fail. [`scripts/ens-register.ts`](scripts/ens-register.ts)
 does the registration. Both print their transactions.
 
-Two layers, on purpose. The chain holds *who may speak for whom* — that is the part which
-must not depend on our server being honest or alive. Our layer holds *what each request
-gets back*, because a generation request needs an answer in one round trip and a human
-approval has to be reachable on a phone. The on-chain roles are the backstop; the API is
-the surface.
+Two layers, on purpose, and **the chain is the one that wins**. `POST /check` reads the
+role before it answers: a consent sitting in our database whose delegation no longer holds
+the on-chain role comes back `revoked`, naming the chain as the reason. Take the role away
+with [`scripts/ens-role.ts`](scripts/ens-role.ts) and the live service refuses in about half
+a second, without anything being written here. The person's page shows the same state
+([`/me`](https://consent-ledger.yoshitatsu.workers.dev/me)), and
+[`/chain`](https://consent-ledger.yoshitatsu.workers.dev/chain) returns it raw.
+
+The split is deliberate: the chain holds *who may speak for whom*, which must not depend on
+our server being honest or alive, and our layer holds *what each request gets back*, because
+a generation request needs an answer in one round trip and a human approval has to reach a
+phone. She is never asked to hold a wallet — the role is administered for her and shown to
+her as a state.
+
+**When the chain cannot be read, we do not assume permission.** The verdict becomes `ask`
+and says so. Falling back to `allow` would reintroduce exactly the failure this project
+exists to stop, so the RPC being down costs a human approval, not a silent yes.
 
 ## Integration points for judges
 
@@ -121,6 +133,8 @@ the surface.
 | The four outcomes and their order | [`src/ledger.ts`](src/ledger.ts) — `check` |
 | API surface | [`src/api.ts`](src/api.ts) |
 | Screens (server-rendered, no client bundle) | [`src/screens.tsx`](src/screens.tsx), [`src/ui.tsx`](src/ui.tsx) |
+| The on-chain role read from the running service, and the fail-closed rule | [`src/chain.ts`](src/chain.ts), and the block at the top of `check` in [`src/ledger.ts`](src/ledger.ts) |
+| Every way this fails, and why none of them return `allow` | [`docs/journey.md`](docs/journey.md) §6; the handler is `app.onError` in [`src/index.ts`](src/index.ts) |
 | Integration debrief | [`FEEDBACK.md`](FEEDBACK.md) |
 
 ### Why this credential, and not a stronger one

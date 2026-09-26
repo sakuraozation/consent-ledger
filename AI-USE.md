@@ -17,6 +17,7 @@ decisions were mine, per the event's attribution rule.
 | `specs/*` | me |
 | `prompts/*` | me |
 | `src/ledger.ts` | Claude Code, from my spec of the four outcomes and the check order |
+| `src/chain.ts`, `scripts/ens-*.ts` | Claude Code, against the verified contract source (not the blog post); the fail-closed rule and the two-layer split are mine |
 | `src/api.ts` | Claude Code |
 | `src/approval.ts` | Claude Code, against the OIDC discovery document I had it read; rewritten for the device flow after the code flow failed |
 | `migrations/*` | Claude Code |
@@ -36,3 +37,6 @@ decisions were mine, per the event's attribution rule.
 - the decision to abandon app.ens.dev and call the ETHRegistrar directly, and to read the
   ABI from the verified source rather than trust the blog post
 - swapping the third prize slot to ENS once the on-chain delegation worked
+- that the chain wins when the two layers disagree, and that an unreadable chain must fall
+  back to asking a human rather than allowing
+- that the person is never asked to hold a wallet

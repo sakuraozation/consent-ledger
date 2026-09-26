@@ -1,5 +1,6 @@
 // 画面。判定はしない（src/ledger.ts の仕事）。理由の文字列はそのまま出す。
 import type { FC, PropsWithChildren } from "hono/jsx";
+import type { ChainState } from "./chain";
 import type { Consent, Use, Verdict } from "./ledger";
 
 const CSS = `
@@ -137,3 +138,47 @@ export const VerdictBox: FC<{ v: Verdict }> = ({ v }) => (
     <p>{v.reason}</p>
   </div>
 );
+
+/**
+ * 委任の権限をチェーン（ENSv2）から読んだ状態。読めなかった時も隠さずに出す
+ * ＝止まっている理由が画面から分かることを優先する。
+ */
+export const ChainPanel: FC<{ s: ChainState }> = ({ s }) => {
+  if (!s.configured) return null;
+  const label = !s.ok ? "unreadable" : s.granted ? "delegated" : "not delegated";
+  return (
+    <div class="card">
+      <div class="row">
+        <strong>
+          {s.name} <span class="dim">/ {s.key}</span>
+        </strong>
+        <span class={`pill ${s.ok ? (s.granted ? "allow" : "revoked") : "ask"}`}>{label}</span>
+      </div>
+      <div class="meta">
+        {s.ok ? (
+          <>
+            {s.granted
+              ? "On ENSv2 (Sepolia), the agency holds the role that lets it write this one record — and nothing else on the name."
+              : "On ENSv2 (Sepolia), the agency holds no role here, so anything it issued does not apply."}
+            {s.record ? (
+              <>
+                {" "}
+                Record on chain: <code>{s.record}</code>
+              </>
+            ) : (
+              " No record written yet."
+            )}
+          </>
+        ) : (
+          <>
+            Could not read the chain, so permission is not assumed — requests fall back to asking the human.{" "}
+            <code>{s.error}</code>
+          </>
+        )}
+      </div>
+      <div class="meta dim">
+        resolver <code>{s.resolver}</code>
+      </div>
+    </div>
+  );
+};

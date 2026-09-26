@@ -5,6 +5,7 @@
 
 export type Decision = "allow" | "deny" | "ask" | "revoked";
 
+import type { ChainState } from "./chain";
 import { activeFor } from "./delegation";
 
 export type Consent = {
@@ -89,15 +90,35 @@ export async function all(db: D1Database): Promise<Consent[]> {
  */
 export async function check(
   db: D1Database,
-  input: { subject: string; scope: string; now?: number },
+  input: { subject: string; scope: string; now?: number; chain?: ChainState },
 ): Promise<Verdict> {
   const now = input.now ?? Date.now();
   const [found, delegation] = await Promise.all([bySubject(db, input.subject), activeFor(db, input.subject)]);
+  const underDelegation = found.filter((c) => c.delegationId !== undefined);
+
+  // 委任の権限の正本はチェーン（ENSv2 の EAC）。D1 に許諾が残っていても、
+  // 事務所の役割が剥奪されていれば通さない。読めなかった時は allow に倒さず人に聞く
+  // ＝RPC の不調で許諾の範囲が広がらないようにする（src/chain.ts の fail closed）。
+  const chain = input.chain;
+  if (chain?.configured && underDelegation.length > 0) {
+    if (!chain.ok) {
+      return {
+        decision: "ask",
+        reason: `Could not read the delegation from ENSv2 (${chain.error ?? "unknown error"}) — asking the human instead of assuming permission.`,
+        requestId: crypto.randomUUID(),
+      };
+    }
+    if (chain.granted === false) {
+      return {
+        decision: "revoked",
+        reason: `On chain, the agency no longer holds the role that lets it write "${chain.key}" on ${chain.name} — so consents it issued no longer apply.`,
+      };
+    }
+  }
 
   // 委任が無い／取り下げられている＝事務所が出した許諾は効かない。本人の最後の一手。
   if (!delegation) {
-    const issued = found.filter((c) => c.delegationId !== undefined);
-    if (issued.length > 0) {
+    if (underDelegation.length > 0) {
       return {
         decision: "revoked",
         reason:

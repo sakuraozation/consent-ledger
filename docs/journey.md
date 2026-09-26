@@ -2,7 +2,8 @@
 
 Three people, one record. Written before the screens, so the screens have something to be
 measured against; revised once the framing changed (the agency is the operator, not the
-adversary).
+adversary), and again once the delegation moved onto ENSv2 (step 2 and step 5 are the two
+places she can feel the difference).
 
 ---
 
@@ -21,6 +22,11 @@ build.
 First she gives her agency the authority to act — the same thing she already does by
 signing with them, made explicit enough for a machine to honour. Without it they cannot
 issue anything, and nothing they issue is honoured.
+
+That authority is a role on her name in ENSv2, scoped to the single record that holds her
+consent. The scoping is the point: the agency can write that record and nothing else on the
+name. She does not sign anything or see an address — her page shows it as a state
+(*delegated* / *not delegated*), which is the only part of it she has a decision about.
 
 Then they do the work. The agency already knows the terms — which medium, until when, how.
 Until now that lived in a contract nobody can query at the speed generation happens.
@@ -79,9 +85,30 @@ The rarer path is hers alone. If she ever wants the authority back, she withdraw
 delegation, and **every consent issued under it stops at once** — the agency cannot undo
 that. She will almost never use it. It is the reason the arrangement is worth trusting.
 
+Because that authority is the on-chain role, the withdrawal holds even if this service is
+wrong about it, or gone. Taking the role away needs nobody's cooperation, and afterwards a
+request that our database would still have allowed comes back **refused, naming the chain as
+the reason**. Roughly half a second, measured.
+
 > *Screen: Withdraw authority, then every request under it refused.*
 
 Ten seconds, either way, no explanation needed.
+
+## 6. When something breaks, nothing is generated
+
+The failure we designed for is not a crash, it is a *silent yes*. So every way this can fail
+falls the same direction:
+
+| What breaks | What happens |
+|---|---|
+| The chain cannot be read | The request does not proceed on the assumption of permission — it goes to **ask**, and the reason says the chain was unreadable |
+| A human is asked and does not answer | The request expires. Nothing is generated. Waiting is the behaviour |
+| This service throws | 500 with the error, and a page that says plainly that nothing was generated |
+| A scope was never granted | **deny**, without asking anyone — there is nothing to ask about |
+
+None of these return `allow`. The one bug we shipped and caught went the other way — a
+revocation leaked across scopes and refused *too much* — and we found it because the usage
+log makes every verdict visible after the fact.
 
 ---
 

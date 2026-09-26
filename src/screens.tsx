@@ -1,9 +1,10 @@
 // 3つの画面。どれも判定を持たず、ledger の verdict をそのまま映す。
 import { Hono } from "hono";
 import { getPendingByRequest, pollApproval, startApproval, sweep } from "./approval";
+import { readChainDelegation } from "./chain";
 import { activeFor, grant as grantDelegation, listFor, withdraw } from "./delegation";
 import { all, bySubject, check, put, record, revoke, usesBySubject } from "./ledger";
-import { ConsentCard, Page, UseLog, VerdictBox } from "./ui";
+import { ChainPanel, ConsentCard, Page, UseLog, VerdictBox } from "./ui";
 
 export const screens = new Hono<{ Bindings: Env }>();
 
@@ -79,10 +80,11 @@ screens.post("/agency/:id/revoke", async (c) => {
 /** 本人の画面。押す物がひとつだけある。窓口を通さずに効く。 */
 screens.get("/me", async (c) => {
   const subject = c.req.query("subject") ?? DEMO_SUBJECT;
-  const [mine, uses, delegations] = await Promise.all([
+  const [mine, uses, delegations, chain] = await Promise.all([
     bySubject(c.env.DB, subject),
     usesBySubject(c.env.DB, subject),
     listFor(c.env.DB, subject),
+    readChainDelegation(c.env, c.env.ENS_CUSTODIAN),
   ]);
   const live = delegations.find((d) => d.withdrawnAt === undefined);
   return c.html(
@@ -120,6 +122,14 @@ screens.get("/me", async (c) => {
           <div class="meta">Until you delegate, your agency cannot act — and neither can anyone else.</div>
         </div>
       )}
+      <h2>The same authority, on chain</h2>
+      <p class="sub">
+        Delegation does not only live in this app. On ENSv2 it is a role on your name, scoped to the one
+        record that holds your consent — so the agency can write that and nothing else. Taking the role
+        away is how you take the authority back, and no server has to cooperate for it to hold.
+      </p>
+      <ChainPanel s={chain} />
+
       <h2>What they have agreed to on your behalf</h2>
       {mine.length === 0 ? <p class="dim">Nothing on file.</p> : mine.map((x) => <ConsentCard c={x} revocable />)}
       <h2>Where it was used</h2>
@@ -158,7 +168,8 @@ screens.get("/generate", async (c) => {
   const subject = c.req.query("subject") ?? DEMO_SUBJECT;
   const scope = c.req.query("scope") ?? "ad-image";
   const asked = c.req.query("asked");
-  const v = asked ? await check(c.env.DB, { subject, scope }) : undefined;
+  const chain = await readChainDelegation(c.env, c.env.ENS_CUSTODIAN);
+  const v = asked ? await check(c.env.DB, { subject, scope, chain }) : undefined;
   if (v) await record(c.env.DB, { subject, scope, verdict: v, requester: "pipeline-a (demo)" });
 
   return c.html(

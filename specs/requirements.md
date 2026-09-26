@@ -97,6 +97,12 @@ identity and permissions.
       deployed through `VerifiableFactory`, EAC roles
 - [x] Enhanced Access Control is load-bearing, not decorative — the delegation *is* the EAC
       role, and revoking the role is how a person takes authority back
+- [x] **ENSv2 is central to the running product, not a side script** — `POST /check` reads
+      the role before it answers, and refuses consents whose delegation lost it; `/me` shows
+      the state; `/chain` returns it raw (added 09-26 after reading the requirement wording:
+      *"ENSv2 features should be central to the product, not a cosmetic add-on"*)
+- [x] Live demo link, and no hard-coded values — the role is read from Sepolia on every
+      request
 - [x] Integration debrief with what was hard — [`FEEDBACK.md`](../FEEDBACK.md), including
       three docs gaps and the blog/ABI mismatch
 - [ ] Mention in the demo video that the record is not resolvable through

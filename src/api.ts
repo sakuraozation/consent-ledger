@@ -1,6 +1,7 @@
 // 照会の口。生成する側（エージェント）はここだけ見ればよい。
 import { Hono } from "hono";
 import { getPendingByRequest, pollApproval, startApproval, sweep } from "./approval";
+import { readChainDelegation } from "./chain";
 import { type Consent, all, check, put, record, revoke, usesBySubject } from "./ledger";
 
 export const api = new Hono<{ Bindings: Env }>();
@@ -27,7 +28,9 @@ api.post("/check", async (c) => {
     | { subject?: string; scope?: string; requester?: string }
     | null;
   if (!b?.subject || !b.scope) return c.json({ error: "subject and scope are required" }, 400);
-  const verdict = await check(c.env.DB, { subject: b.subject, scope: b.scope });
+  // 委任の権限はチェーンが正本なので、判定の前に読む（読めない時は ask に倒れる）
+  const chain = await readChainDelegation(c.env, c.env.ENS_CUSTODIAN);
+  const verdict = await check(c.env.DB, { subject: b.subject, scope: b.scope, chain });
   // 判定は全部残す。拒否も含めて、本人が後から見られるように。
   await record(c.env.DB, {
     subject: b.subject,
@@ -36,7 +39,7 @@ api.post("/check", async (c) => {
     requester: b.requester ?? c.req.header("user-agent") ?? undefined,
   });
   // allow 以外も 200 で返す＝呼ぶ側が判定を読む。HTTP のエラーにしない。
-  return c.json(verdict);
+  return c.json({ ...verdict, chain: chain.configured ? { ok: chain.ok, granted: chain.granted, name: chain.name, key: chain.key, error: chain.error } : undefined });
 });
 
 /** 本人が取り消す。窓口（事務所）を通さずに効く＝ここが設計の芯。 */
@@ -107,3 +110,6 @@ api.get("/approvals/:requestId", async (c) => {
     approvedBy: r.pending?.sub,
   });
 });
+
+/** 委任の権限をチェーンから読んだ生の状態。審査で開けるように口を1つ出す。 */
+api.get("/chain", async (c) => c.json(await readChainDelegation(c.env, c.env.ENS_CUSTODIAN)));

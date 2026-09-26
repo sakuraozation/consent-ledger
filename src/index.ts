@@ -51,6 +51,29 @@ app.get("/api", (c) =>
 
 app.get("/health", (c) => c.json({ ok: true }));
 
+// 想定外の例外は Workers の素の 500 になり、何が落ちたか残らない。呼ぶ側には
+// 機械が読める形で返し、内容はログへ（judge がデモ中の失敗を追えるように）。
+app.onError((err, c) => {
+  console.error("[error]", c.req.method, c.req.path, err instanceof Error ? err.stack : String(err));
+  const wantsJson = c.req.path.startsWith("/api") || c.req.header("accept")?.includes("application/json");
+  if (wantsJson) {
+    return c.json({ error: "internal_error", detail: err instanceof Error ? err.message : String(err) }, 500);
+  }
+  return c.html(
+    `<!doctype html><meta charset="utf-8"><title>Something broke</title>
+<body style="font:16px/1.6 system-ui;max-width:40rem;margin:4rem auto;padding:0 1rem">
+<h1>Something broke, and nothing was generated</h1>
+<p>That is the intended direction of failure: when this service cannot answer, the action does not happen.</p>
+<pre style="white-space:pre-wrap;background:#f4f4f5;padding:1rem;border-radius:8px">${
+      err instanceof Error ? err.message : String(err)
+    }</pre>
+<p><a href="/generate">Back</a></p>`,
+    500,
+  );
+});
+
+app.notFound((c) => c.json({ error: "not_found", path: c.req.path }, 404));
+
 app.use("/paid", async (c, next) => {
   paid ??= buildPaid(c.env);
   return paid(c, next);

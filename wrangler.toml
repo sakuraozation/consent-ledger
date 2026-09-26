@@ -21,6 +21,14 @@ NETWORK = "eip155:84532"
 # World ID。Developer Portal（IDKit）と sandbox.auth.world.org（for Agents）。
 # 値は .dev.vars（git 管理外）に置く。
 
+# ENSv2（Sepolia beta）。委任の権限の正本＝この resolver の役割。
+# 登録＝scripts/ens-register.ts / 委任＝scripts/ens-delegate.ts
+ENS_NAME = "consentledger.eth"
+ENS_RESOLVER = "0x8591D727D6a7317f843de72Bd2D31AB31A2841C9"
+ENS_CONSENT_KEY = "consent.bodyscan"
+# 事務所役のアドレス（画面と /check がこの役割を見る）
+ENS_CUSTODIAN = "0x43e619de6A13ADF126AB4b329b8c89D1d0ae6694"
+
 [[d1_databases]]
 binding = "DB"
 database_name = "consent-ledger"
