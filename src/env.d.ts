@@ -8,6 +8,7 @@ declare global {
     /** World ID（IDKit・Developer Portal） */
     WORLD_APP_ID?: string;
     WORLD_ACTION?: string;
+    WORLD_WITHDRAW_ACTION?: string;
     /** ENSv2（Sepolia）。委任の権限はここが正本＝src/chain.ts */
     ENS_NAME?: string;
     ENS_RESOLVER?: string;

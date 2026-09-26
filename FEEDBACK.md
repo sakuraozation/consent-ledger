@@ -37,6 +37,20 @@
 - **ポータル側**: Redirect URI が **HTTPS 必須**で `http://localhost` を受け付けない。ローカルで試す導線が無く、先に Workers へデプロイして URL を確定させる必要があった（device フローに移った結果、この登録自体が不要になった）
 - **docs に無かった挙動（09-22 実測）**: `/api/v2/verify` は **User-Agent が無いリクエストを nginx の 403 HTML で弾く**。Cloudflare Workers の `fetch` は既定で UA を送らないので、正しい app_id と action でも全て 403 になる。本文が JSON でないため `res.json()` が `Unexpected token '<'` で落ち、原因が隠れる（未知の app_id も同じ 403 HTML なので、誤って「app_id が違う」と判断しかけた）。UA を1つ付けるだけで解決。
 
+### IDKit（09-26 追記）
+
+- **時間**: 既に `verify` の配線が動いていたので、製品の判断に接続する作業は約50分（うち
+  action の新規作成は API 1本・即時）
+- **良かった点**: `POST /api/v2/create-action/{app_id}` で**専用の action をコードから作れる**
+  （ポータルの UI を開かずに済んだ）。承認用の action を流用せずに済み、「どの操作のための
+  検証か」が台帳上で分かれた
+- **詰まった所**: ①`verification_level` の階梯（device < orb）が docs で表として出てこない。
+  「資格が足りない」を実装するのに必要な情報なのに、各 credential のページに散っている
+  ②`invalid_format` のメッセージが「ABI-encoded uint256[8] か JSON 配列」と実装の話をしていて、
+  **呼ぶ側の画面にそのまま出せない**（人間に見せる文は自分で書く必要がある）
+- **一番効く改善**: **失敗時の `code` に、人間に見せてよい1文を併記すること**。賞の要件が
+  「意味のある別経路を見せる」である以上、拒否の文言は成功と同じくらい製品の一部になる
+
 ## ENS（ENSv2 Sepolia）
 
 事前の「道具に慣れる」段階（09-21〜22）で読み取りは動き、**アプリ（app.ens.dev）からの登録は未達**。会期2日目（09-26）に **Registrar を直接呼んで登録が通り、Enhanced Access Control で委任まで動いた**。

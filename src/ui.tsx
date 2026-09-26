@@ -9,6 +9,8 @@ const CSS = `
 @media (prefers-color-scheme: dark) { :root { --bg:#0e0e10; --fg:#f2f2f2; --muted:#9a9a9a;
   --line:#2a2a2e; --card:#17171a; --allow:#4ade80; --deny:#f87171; --ask:#fbbf24; --revoked:#c4b5fd; } }
 * { box-sizing:border-box }
+a.btnlink { display:inline-block; padding:.5rem .9rem; border:1px solid var(--line);
+  border-radius:8px; background:var(--card); color:var(--fg); text-decoration:none; font-size:.95rem }
 body { margin:0; background:var(--bg); color:var(--fg);
   font:16px/1.6 ui-sans-serif,system-ui,-apple-system,"Hiragino Kaku Gothic ProN",sans-serif }
 main { max-width:44rem; margin:0 auto; padding:2.5rem 1.25rem 4rem }

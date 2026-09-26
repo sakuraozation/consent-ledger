@@ -23,16 +23,34 @@ changes a user's experience. Explicitly: *"We are not rewarding the most credent
 used. We are rewarding the best decision about which credential is needed, why it is
 needed, and how it improves a real product experience."*
 
-- [ ] Integrate IDKit in a functioning application, mini app, or onchain flow
-- [ ] Use at least one supported credential and **verify the result on the server or
-      onchain** as appropriate
-- [ ] **Clearly explain the specific product event requiring trust, and why the chosen
-      credential is the minimum sufficient assurance**
-- [ ] Demonstrate a successful verification **and one meaningful alternative path**
-      (cancellation, unavailable credential, rejection, or an ineligible user)
+> Found 09-26, late: this checklist was empty because the prize was **actually unmet** —
+> `src/worldid.ts` was the pre-event hello world sitting on its own route, wired to no
+> product event. The fix was to gate the one action that must be the person's own.
+
+- [x] Integrate IDKit in a functioning application, mini app, or onchain flow — the
+      **Withdraw authority** confirmation at `/me/delegations/:id/withdraw`
+- [x] Use at least one supported credential and **verify the result on the server or
+      onchain** as appropriate — Proof of Human, verified server-side via
+      `POST /api/v2/verify/{app_id}` in `verifyProof` (`src/worldid.ts`); the client's
+      success is never treated as authorization, and the nullifier is recorded in D1
+- [x] **Clearly explain the specific product event requiring trust, and why the chosen
+      credential is the minimum sufficient assurance** — on the confirmation screen itself
+      and in the README: taking the delegation back is the one action nobody may do on her
+      behalf, so what must be true is *a real human, the same one* — not who she is
+- [x] Demonstrate a successful verification **and one meaningful alternative path**
+      (cancellation, unavailable credential, rejection, or an ineligible user) — three
+      refusals verified in production: no proof (`proof_required`), credential below the
+      required level (`insufficient_credential`), proof rejected by World
+      (`invalid_format`). In every case **the delegation is untouched**. Cancelling the
+      modal withdraws nothing
+- [ ] Confirm the success path on a phone with World App (needs the device — everything
+      else is verified)
 - [ ] Include a short integration debrief: time to first success, friction encountered,
       missing capability or documentation, and the one improvement with the greatest
       impact → `FEEDBACK.md`
+- [x] A dedicated action for this event (`withdraw-authority`, unlimited verifications),
+      created through `POST /api/v2/create-action/{app_id}` rather than reusing the
+      approval action
 
 **Our answer to the credential question** (this is the graded part): the trust moment is
 *granting or revoking consent over one's own body-scan data*. What has to be true is

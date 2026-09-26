@@ -18,8 +18,12 @@ FACILITATOR_URL = "https://x402.org/facilitator"
 # CAIP-2。eip155:84532 = Base Sepolia
 NETWORK = "eip155:84532"
 
-# World ID。Developer Portal（IDKit）と sandbox.auth.world.org（for Agents）。
-# 値は .dev.vars（git 管理外）に置く。
+# World ID（IDKit）。app_id と action は公開値なので vars に置く。
+# client secret（for Agents）だけ wrangler secret put で入れる。
+WORLD_APP_ID = "app_02d24f47fdbf90afd00f47d9574b7068"
+WORLD_ACTION = "agent-approval"
+# 「権限を取り戻す」操作の前に通す検証（専用の action・無制限）
+WORLD_WITHDRAW_ACTION = "withdraw-authority"
 
 # ENSv2（Sepolia beta）。委任の権限の正本＝この resolver の役割。
 # 登録＝scripts/ens-register.ts / 委任＝scripts/ens-delegate.ts

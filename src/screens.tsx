@@ -5,8 +5,18 @@ import { readChainDelegation } from "./chain";
 import { activeFor, grant as grantDelegation, listFor, withdraw } from "./delegation";
 import { all, bySubject, check, put, record, revoke, usesBySubject } from "./ledger";
 import { ChainPanel, ConsentCard, Page, UseLog, VerdictBox } from "./ui";
+import { type Proof, REQUIRED_LEVEL, verifyProof } from "./worldid";
 
 export const screens = new Hono<{ Bindings: Env }>();
+
+/** content-type の無い POST で Hono の formData() が投げる。空として扱い、500 にしない。 */
+const form = async (c: { req: { formData: () => Promise<FormData> } }): Promise<FormData> => {
+  try {
+    return await c.req.formData();
+  } catch {
+    return new FormData();
+  }
+};
 
 const DEMO_SUBJECT = "model-a";
 
@@ -55,7 +65,7 @@ screens.get("/agency", async (c) => {
 });
 
 screens.post("/agency/consents", async (c) => {
-  const f = await c.req.formData();
+  const f = await form(c);
   const subject = String(f.get("subject") ?? DEMO_SUBJECT);
   const delegation = await activeFor(c.env.DB, subject);
   // 委任が無ければ事務所は発行できない。ここが権限の線。
@@ -99,11 +109,9 @@ screens.get("/me", async (c) => {
         <div class="card">
           <div class="row">
             <strong>{live.custodian}</strong>
-            <form method="post" action={`/me/delegations/${live.id}/withdraw`}>
-              <button type="submit" class="ghost">
-                Withdraw authority
-              </button>
-            </form>
+            <a href={`/me/delegations/${live.id}/withdraw`} class="btnlink">
+              Withdraw authority
+            </a>
           </div>
           <div class="meta">
             Acting for you since {new Date(live.grantedAt).toISOString().slice(11, 19)}Z. Withdrawing stops
@@ -149,7 +157,7 @@ screens.post("/me/:id/revoke", async (c) => {
 
 /** 委任する。実運用では World ID の承認を通す（デモでは1クリック）。 */
 screens.post("/me/delegations", async (c) => {
-  const f = await c.req.formData();
+  const f = await form(c);
   await grantDelegation(c.env.DB, {
     subject: String(f.get("subject") ?? DEMO_SUBJECT),
     custodian: "Tokyo Model Agency",
@@ -157,10 +165,110 @@ screens.post("/me/delegations", async (c) => {
   return c.redirect("/me");
 });
 
-/** 本人だけの一手。以後、その下の許諾はすべて効かない。 */
+/**
+ * 本人だけの一手。**押す前に本人確認を通す**——この操作は他の誰にも代行させられない
+ * ものとして設計してあるのに、誰でも押せるままでは主張が成立しない。
+ * 要る資格は「実在する人間で、前と同じ人」だけ＝Proof of Human で足りる（身元は不要）。
+ */
+screens.get("/me/delegations/:id/withdraw", async (c) => {
+  const appId = c.env.WORLD_APP_ID;
+  const action = c.env.WORLD_WITHDRAW_ACTION ?? c.env.WORLD_ACTION;
+  const id = c.req.param("id");
+  const failed = c.req.query("failed");
+  return c.html(
+    <Page title="Confirm it is you" here="me">
+      <h1>Taking the authority back</h1>
+      <p class="sub">
+        This stops every consent your agency issued under the delegation, at once, and they cannot undo it.
+        Because nobody may do this on your behalf, we check that a real person is doing it — and that it is
+        the same person as before. We do not learn who you are.
+      </p>
+      <div class="card">
+        <div class="meta">
+          Credential required: <strong>{REQUIRED_LEVEL}</strong> (Proof of Human). Not a passport, not a
+          selfie — identity is not what this needs. Continuity is.
+        </div>
+      </div>
+      {failed ? (
+        <div class="card">
+          <div class="row">
+            <strong>Not withdrawn</strong>
+            <span class="pill deny">refused</span>
+          </div>
+          <div class="meta">{failed}</div>
+        </div>
+      ) : null}
+      {appId && action ? (
+        <>
+          <p>
+            <button type="button" id="go">
+              Verify with World ID, then withdraw
+            </button>{" "}
+            <a href="/me" class="dim">
+              Cancel
+            </a>
+          </p>
+          <pre id="out" class="paste" />
+          {/* biome-ignore lint/security/noDangerouslySetInnerHtml: 自前の定数スクリプト */}
+          <script
+            type="module"
+            dangerouslySetInnerHTML={{
+              __html: `
+import "https://cdn.jsdelivr.net/npm/@worldcoin/idkit-standalone@2/build/index.global.js";
+const out = document.getElementById("out");
+const show = (t) => { out.textContent = t; };
+IDKit.init({
+  app_id: ${JSON.stringify(appId)},
+  action: ${JSON.stringify(action)},
+  verification_level: ${JSON.stringify(REQUIRED_LEVEL)},
+  handleVerify: async (proof) => {
+    // 証明はサーバへ渡すだけ。ここでの成功をそのまま権限に使わない。
+    const r = await fetch(location.pathname, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(proof),
+    });
+    const body = await r.json();
+    if (!r.ok) { show("Refused: " + (body.detail || body.reason)); throw new Error(body.reason); }
+    location.href = "/me";
+  },
+  onError: (e) => show("Cancelled or failed — nothing was withdrawn. " + (e?.code ?? "")),
+});
+document.getElementById("go").addEventListener("click", () => IDKit.open());
+`,
+            }}
+          />
+          <p class="dim">
+            If you close the window, or the credential is not strong enough, the delegation stays exactly as
+            it is. Refusing to verify does not withdraw anything.
+          </p>
+        </>
+      ) : (
+        <p class="dim">World ID is not configured on this deployment, so this action cannot be confirmed.</p>
+      )}
+      <p class="dim">Delegation {id}</p>
+    </Page>,
+  );
+});
+
 screens.post("/me/delegations/:id/withdraw", async (c) => {
-  await withdraw(c.env.DB, c.req.param("id"));
-  return c.redirect("/me");
+  const proof = (await c.req.json().catch(() => null)) as Proof | null;
+  if (!proof) {
+    // 証明なしの POST は通さない（フォームからの直叩きもここで止まる）
+    return c.json({ reason: "proof_required", detail: "Verify with World ID first." }, 400);
+  }
+  const action = c.env.WORLD_WITHDRAW_ACTION ?? c.env.WORLD_ACTION ?? "";
+  const checked = await verifyProof(c.env, proof, { action, db: c.env.DB });
+  if (!checked.ok) {
+    // 検証が通らない限り委任はそのまま。ここが「本人の一手」の実装。
+    return c.json({ reason: checked.reason, detail: checked.detail }, checked.status);
+  }
+  const d = await withdraw(c.env.DB, c.req.param("id"));
+  if (!d) return c.json({ reason: "not_found" }, 404);
+  await c.env.DB.prepare("UPDATE delegations SET withdrawn_by_nullifier = ? WHERE id = ?")
+    .bind(checked.nullifier, d.id)
+    .run();
+  return c.json({ ok: true, withdrawn: d.id, verifiedAs: checked.nullifier });
 });
 
 /** 生成する側。押すと、生成の前に照会が走る。 */
@@ -220,7 +328,7 @@ screens.get("/generate", async (c) => {
 
 /** 人に聞く。コードを出して待つ。待っている間は何も生成しない。 */
 screens.post("/generate/ask", async (c) => {
-  const f = await c.req.formData();
+  const f = await form(c);
   const requestId = String(f.get("requestId"));
   const clientId = c.env.WORLD_OIDC_CLIENT_ID;
   const clientSecret = c.env.WORLD_OIDC_CLIENT_SECRET;

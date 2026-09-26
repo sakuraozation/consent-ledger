@@ -127,6 +127,7 @@ exists to stop, so the RPC being down costs a human approval, not a silent yes.
 
 | What | Where |
 |---|---|
+| **World ID / IDKit** — the person's own action is gated on Proof of Human, verified server-side | [`src/worldid.ts`](src/worldid.ts) — `verifyProof`; the screen is `GET /me/delegations/:id/withdraw` in [`src/screens.tsx`](src/screens.tsx) |
 | **World ID for Agents** — device flow, ID token verified server-side against the issuer's JWKS | [`src/approval.ts`](src/approval.ts) — `startApproval`, `pollApproval` (the `jwtVerify` call is the line that matters) |
 | **ENSv2** — commit/reveal registration against the ETHRegistrar | [`scripts/ens-register.ts`](scripts/ens-register.ts) |
 | **ENSv2 Enhanced Access Control** — delegation as a per-key role, granted and revoked | [`scripts/ens-delegate.ts`](scripts/ens-delegate.ts) — `authorizeTextRoles`, and the three calls that must revert |
@@ -136,6 +137,24 @@ exists to stop, so the RPC being down costs a human approval, not a silent yes.
 | The on-chain role read from the running service, and the fail-closed rule | [`src/chain.ts`](src/chain.ts), and the block at the top of `check` in [`src/ledger.ts`](src/ledger.ts) |
 | Every way this fails, and why none of them return `allow` | [`docs/journey.md`](docs/journey.md) §6; the handler is `app.onError` in [`src/index.ts`](src/index.ts) |
 | Integration debrief | [`FEEDBACK.md`](FEEDBACK.md) |
+
+### The one action nobody may do on her behalf
+
+Everything else here is the agency's job, and that is deliberate. One thing is not:
+**withdrawing the delegation**. If anyone could press it, the backstop would not be a
+backstop — so that button leads to a confirmation that requires Proof of Human, verified on
+our server before anything is written.
+
+The refusals matter more than the success. No proof, a credential below the required level,
+or a proof World rejects all leave the delegation **exactly as it was**; closing the modal
+withdraws nothing. Refusing to verify is not a way to withdraw, and verifying is not
+something the client can claim — the browser's success is only a proof to hand to the
+server.
+
+There is no login anywhere else. The agency dashboard and the generating side are open in
+this demo, which is a deliberate omission rather than an oversight: a session layer is
+ordinary B2B work that would prove nothing here, while the *one* action whose authority is
+the whole argument had to be real.
 
 ### Why this credential, and not a stronger one
 
